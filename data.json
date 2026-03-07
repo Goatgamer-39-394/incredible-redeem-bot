@@ -1,0 +1,16 @@
+{
+  "codes": {
+    "ESN": {
+      "product": "steam",
+      "used": true
+    }
+  },
+  "stock": {
+    "steam": [],
+    "minecraft": [],
+    "crunchyroll": []
+  },
+  "failedAttempts": {
+    "1471837933429325855": 0
+  }
+}

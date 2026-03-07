@@ -1,0 +1,224 @@
+require("dotenv").config();
+const token = process.env.DISCORD_TOKEN;
+const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
+
+const client = new Client({
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent,
+    GatewayIntentBits.DirectMessages
+  ]
+});
+
+// ================= SETTINGS =================
+const PREFIX = ".";
+const OWNER_ID = "YOUR_DISCORD_USER_ID"; 
+const STAFF_ROLE_ID = "1477887155106746380";
+const BANNER_URL = "https://your-banner-image-link.com/banner.png";
+
+let systemEnabled = true;
+
+// ================= STORAGE =================
+const stock = {
+  steam: [],
+  minecraft: [],
+  crunchyroll: []
+};
+
+const generatedCodes = new Map();
+const cooldown = new Map();
+const COOLDOWN_TIME = 2 * 60 * 60 * 1000; // 2 hours
+
+// ================= CODE GENERATOR =================
+function generateCode(length) {
+  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+client.on("ready", () => {
+  console.log(`Logged in as ${client.user.tag}`);
+});
+
+client.on("messageCreate", async (message) => {
+  if (!message.guild) return;
+  if (message.author.bot) return;
+  if (!message.content.startsWith(PREFIX)) return;
+
+  const args = message.content.slice(PREFIX.length).trim().split(/ +/);
+  const command = args.shift().toLowerCase();
+
+  // ================= ENABLE / DISABLE =================
+  if (command === "enable" && message.author.id === OWNER_ID) {
+    systemEnabled = true;
+    return message.reply("✅ Redeem system enabled.");
+  }
+
+  if (command === "disable" && message.author.id === OWNER_ID) {
+    systemEnabled = false;
+    return message.reply("🛑 Redeem system disabled.");
+  }
+
+  // ================= ADD STOCK =================
+  if (command === "addstock") {
+    if (!message.member.roles.cache.has(STAFF_ROLE_ID))
+      return message.reply("❌ Staff only.");
+
+    const type = args[0]?.toLowerCase();
+    const account = args.slice(1).join(" ");
+
+    if (!["steam", "minecraft", "crunchyroll"].includes(type))
+      return message.reply("❌ Usage: .addstock steam/minecraft/crunchyroll email:pass");
+
+    if (!account.includes(":"))
+      return message.reply("❌ Format must be email:password");
+
+    stock[type].push(account);
+    return message.reply(`✅ Added 1 ${type} account.`);
+  }
+
+  // ================= STOCK =================
+  if (command === "stock") {
+    if (!message.member.roles.cache.has(STAFF_ROLE_ID))
+      return message.reply("❌ Staff only.");
+
+    return message.reply(
+      `📦 Stock:\nSteam: ${stock.steam.length}\nMinecraft: ${stock.minecraft.length}\nCrunchyroll: ${stock.crunchyroll.length}`
+    );
+  }
+
+  // ================= GEN =================
+  if (command === "gen") {
+
+    if (!systemEnabled)
+      return message.reply("🛑 System disabled.");
+
+    const type = args[0]?.toLowerCase();
+    if (!["steam", "minecraft", "crunchyroll"].includes(type))
+      return message.reply("❌ Usage: .gen steam | minecraft | crunchyroll");
+
+    const cooldownKey = `${message.author.id}-${type}`;
+    const now = Date.now();
+
+    if (cooldown.has(cooldownKey)) {
+      const expiration = cooldown.get(cooldownKey) + COOLDOWN_TIME;
+      if (now < expiration) {
+        const timeLeft = expiration - now;
+        const hours = Math.floor(timeLeft / 3600000);
+        const minutes = Math.floor((timeLeft % 3600000) / 60000);
+        return message.reply(`⏳ Wait ${hours}h ${minutes}m before generating ${type} again.`);
+      }
+    }
+
+    cooldown.set(cooldownKey, now);
+
+    const length = type === "steam" ? 3 : type === "minecraft" ? 5 : 6;
+    const code = generateCode(length);
+    generatedCodes.set(code, type);
+
+    const embed = new EmbedBuilder()
+      .setTitle(`🎁 Incredible Gen ${type}`)
+      .setDescription(
+`Follow these steps:
+
+1️⃣ Create a redeem ticket  
+2️⃣ Type \`.redeem ${code}\`  
+
+Your Code: **${code}**
+
+This is a ${length} character ${type} code.`
+      )
+      .setColor("#8e44ff")
+      .setImage(BANNER_URL)
+      .setFooter({
+        text: "Incredible Services • Redeem inside tickets only",
+        iconURL: client.user.displayAvatarURL()
+      })
+      .setTimestamp();
+
+    await message.reply("📩 Check your DMs!");
+
+    try {
+      await message.author.send({ embeds: [embed] });
+    } catch {
+      message.reply("❌ I cannot DM you.");
+    }
+  }
+
+  // ================= REDEEM =================
+  if (command === "redeem") {
+
+    if (!systemEnabled)
+      return message.reply("🛑 System disabled.");
+
+    // ===== REDEEM HELP =====
+    if (args[0]?.toLowerCase() === "help") {
+      const helpEmbed = new EmbedBuilder()
+        .setTitle("🎟 Redeem Help")
+        .setDescription(
+`How to redeem:
+
+1️⃣ Use \`.gen steam | minecraft | crunchyroll\`
+2️⃣ Check your DMs for your code
+3️⃣ Create a redeem ticket
+4️⃣ Type \`.redeem YOURCODE\`
+
+⚠️ Rules:
+• Codes only work if generated by the bot
+• Codes expire after use
+• Do NOT share your code
+• If account doesn't work, staff can replace it`
+        )
+        .setColor("#8e44ff")
+        .setImage(BANNER_URL)
+        .setFooter({
+          text: "Incredible Services • Official Redeem System",
+          iconURL: client.user.displayAvatarURL()
+        })
+        .setTimestamp();
+
+      return message.reply({ embeds: [helpEmbed] });
+    }
+
+    const code = args[0];
+    if (!code) return message.reply("❌ Provide a code.");
+
+    if (!generatedCodes.has(code))
+      return message.reply("❌ Invalid or expired code.");
+
+    const type = generatedCodes.get(code);
+
+    if (stock[type].length === 0)
+      return message.reply("❌ Out of stock.");
+
+    const account = stock[type].shift();
+    generatedCodes.delete(code);
+
+    const embed = new EmbedBuilder()
+      .setTitle("🎉 Account Redeemed")
+      .setDescription(
+`Here is your ${type} account:
+
+\`${account}\`
+
+Please ask any questions to the staff and confirm you have received the account.
+If it does not work we can replace it.`
+      )
+      .setColor("Green")
+      .setImage(BANNER_URL)
+      .setFooter({
+        text: "Incredible Services",
+        iconURL: client.user.displayAvatarURL()
+      })
+      .setTimestamp();
+
+    message.channel.send({ embeds: [embed] });
+  }
+
+});
+
+client.login(process.env.TOKEN);
