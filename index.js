@@ -39,7 +39,7 @@ const generatedCodes = new Map();
 const cooldown = new Map();
 const COOLDOWN_TIME = 2 * 60 * 60 * 1000;
 
-// ================= PERMISSION CHECK =================
+// ================= PERMISSIONS =================
 function isStaff(member, userId) {
   return (
     OWNER_IDS.includes(userId) ||
@@ -82,8 +82,9 @@ client.on("messageCreate", async (message) => {
     return message.reply("🛑 Redeem system disabled.");
   }
 
-  // ================= OWNER DASHBOARD =================
+  // ================= DASHBOARD =================
   if (command === "dashboard") {
+
     if (!OWNER_IDS.includes(message.author.id))
       return message.reply("❌ Owner only.");
 
@@ -147,26 +148,28 @@ Crunchyroll: ${stock.crunchyroll.length}`
     return message.reply(`✅ Added ${accounts.length} ${type} account(s).`);
   }
 
-  // ================= REMOVE STOCK =================
+  // ================= REMOVE STOCK (FIXED) =================
   if (command === "removestock") {
 
     if (!isStaff(message.member, message.author.id))
       return message.reply("❌ Staff only.");
 
     const type = args[0]?.toLowerCase();
-    const email = args[1];
+    const email = args.slice(1).join(" ");
 
-    if (!stock[type])
+    if (!["steam","minecraft","crunchyroll"].includes(type))
       return message.reply("Usage: .removestock steam/minecraft/crunchyroll email");
 
-    const index = stock[type].findIndex(acc => acc.startsWith(email + ":"));
+    const index = stock[type].findIndex(acc =>
+      acc.toLowerCase().startsWith(email.toLowerCase() + ":")
+    );
 
     if (index === -1)
-      return message.reply("❌ Account not found.");
+      return message.reply("❌ Account not found in stock.");
 
     const removed = stock[type].splice(index,1)[0];
 
-    return message.reply(`🗑 Removed ${removed}`);
+    return message.reply(`🗑 Removed account:\n\`${removed}\``);
   }
 
   // ================= STAFF STOCK =================
@@ -196,7 +199,7 @@ Crunchyroll: ${stock.crunchyroll.length}`
 
     const embed = new EmbedBuilder()
       .setTitle(`📦 ${type.toUpperCase()} Accounts`)
-      .setDescription(stock[type].join("\n"))
+      .setDescription(stock[type].join("\n") || "No accounts.")
       .setColor("#3498db");
 
     return message.reply({ embeds: [embed] });
@@ -213,15 +216,15 @@ Crunchyroll: ${stock.crunchyroll.length}`
 
 🎮 **STEAM**
 🟢 ONLINE
-Stock: **${stock.steam.length || "∞"}**
+Stock: **${stock.steam.length}**
 
 🍿 **CRUNCHYROLL**
 🟢 ONLINE
-Stock: **${stock.crunchyroll.length || "∞"}**
+Stock: **${stock.crunchyroll.length}**
 
 ⛏ **MINECRAFT**
 🟢 ONLINE
-Stock: **${stock.minecraft.length || "∞"}**
+Stock: **${stock.minecraft.length}**
 
 ╚════════════════════════╝
 
@@ -284,6 +287,7 @@ Stock: **${stock.minecraft.length || "∞"}**
     cooldown.set(cooldownKey, now);
 
     const length = type === "steam" ? 3 : type === "minecraft" ? 5 : 6;
+
     const code = generateCode(length);
 
     generatedCodes.set(code,type);
