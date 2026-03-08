@@ -12,13 +12,17 @@ const client = new Client({
 
 // ================= SETTINGS =================
 const PREFIX = ".";
+
 const OWNER_IDS = [
   "1471837933429325855",
   "1121404311319089153",
   "1358359831140110426"
 ];
 
-const STAFF_ROLE_ID = "1477887155106746380";
+const STAFF_ROLE_IDS = [
+  "1477887155106746380",
+  "1465398987094888510"
+];
 
 const BANNER_URL = "https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif";
 
@@ -34,6 +38,14 @@ const stock = {
 const generatedCodes = new Map();
 const cooldown = new Map();
 const COOLDOWN_TIME = 2 * 60 * 60 * 1000;
+
+// ================= PERMISSION CHECK =================
+function isStaff(member, userId) {
+  return (
+    OWNER_IDS.includes(userId) ||
+    STAFF_ROLE_IDS.some(role => member.roles.cache.has(role))
+  );
+}
 
 // ================= CODE GENERATOR =================
 function generateCode(length) {
@@ -109,7 +121,7 @@ Crunchyroll: ${stock.crunchyroll.length}`
   // ================= ADD STOCK =================
   if (command === "addstock") {
 
-    if (!message.member.roles.cache.has(STAFF_ROLE_ID))
+    if (!isStaff(message.member, message.author.id))
       return message.reply("❌ Staff only.");
 
     const type = args[0]?.toLowerCase();
@@ -138,7 +150,7 @@ Crunchyroll: ${stock.crunchyroll.length}`
   // ================= REMOVE STOCK =================
   if (command === "removestock") {
 
-    if (!message.member.roles.cache.has(STAFF_ROLE_ID))
+    if (!isStaff(message.member, message.author.id))
       return message.reply("❌ Staff only.");
 
     const type = args[0]?.toLowerCase();
@@ -160,7 +172,7 @@ Crunchyroll: ${stock.crunchyroll.length}`
   // ================= STAFF STOCK =================
   if (command === "staffstock") {
 
-    if (!message.member.roles.cache.has(STAFF_ROLE_ID))
+    if (!isStaff(message.member, message.author.id))
       return message.reply("❌ Staff only.");
 
     const type = args[0]?.toLowerCase();
@@ -190,7 +202,7 @@ Crunchyroll: ${stock.crunchyroll.length}`
     return message.reply({ embeds: [embed] });
   }
 
-  // ================= PUBLIC STOCK (UPDATED UI) =================
+  // ================= PUBLIC STOCK =================
   if (command === "stock") {
 
     const embed = new EmbedBuilder()
@@ -272,7 +284,6 @@ Stock: **${stock.minecraft.length || "∞"}**
     cooldown.set(cooldownKey, now);
 
     const length = type === "steam" ? 3 : type === "minecraft" ? 5 : 6;
-
     const code = generateCode(length);
 
     generatedCodes.set(code,type);
