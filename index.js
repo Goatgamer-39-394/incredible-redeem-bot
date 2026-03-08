@@ -188,19 +188,15 @@ ${stock[type].join("\n")}`
   }
 
   // ================= PUBLIC STOCK =================
-  if (command === "stock") {
+  // ================= PUBLIC STOCK =================
+if (command === "stock") {
 
-    const steamStatus = stock.steam.length > 0 ? "ONLINE ✅" : "OFFLINE ❌";
-    const crunchyStatus = stock.crunchyroll.length > 0 ? "ONLINE ✅" : "OFFLINE ❌";
-    const minecraftStatus = stock.minecraft.length > 0 ? "ONLINE ✅" : "OFFLINE ❌";
-
-    return message.reply(
-`Steam - ${steamStatus}
-Crunchyroll - ${crunchyStatus}
-Minecraft - ${minecraftStatus}`
-    );
-  }
-
+  return message.reply(
+`Steam - ONLINE ✅
+Crunchyroll - ONLINE ✅
+Minecraft - ONLINE ✅`
+  );
+}
   // ================= RESET COOLDOWN =================
   if (command === "resetcooldown") {
 
