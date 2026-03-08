@@ -107,7 +107,7 @@ Crunchyroll: ${stock.crunchyroll.length}`
     return message.reply(`🗑 Cleared ${type} stock.`);
   }
 
-  // ================= ADD STOCK (MULTIPLE) =================
+  // ================= ADD STOCK =================
   if (command === "addstock") {
 
     if (!message.member.roles.cache.has(STAFF_ROLE_ID))
@@ -187,16 +187,36 @@ ${stock[type].join("\n")}`
     );
   }
 
-  // ================= PUBLIC STOCK =================
-  // ================= PUBLIC STOCK =================
-if (command === "stock") {
+  // ================= FLASHY PUBLIC STOCK =================
+  if (command === "stock") {
 
-  return message.reply(
-`Steam - ONLINE ✅
-Crunchyroll - ONLINE ✅
-Minecraft - ONLINE ✅`
-  );
-}
+    const embed = new EmbedBuilder()
+      .setTitle("⚡ Incredible Generator Status")
+      .setDescription(
+`╔════════════════════╗
+🎮 **Steam**  
+🟢 **ONLINE** ✅
+
+🍿 **Crunchyroll**  
+🟢 **ONLINE** ✅
+
+⛏ **Minecraft**  
+🟢 **ONLINE** ✅
+╚════════════════════╝
+
+🚀 **Use \`.gen steam | minecraft | crunchyroll\` to generate accounts!**`
+      )
+      .setColor("#8e44ff")
+      .setImage(BANNER_URL)
+      .setFooter({
+        text: "Incredible Services • Free Generator",
+        iconURL: client.user.displayAvatarURL()
+      })
+      .setTimestamp();
+
+    message.reply({ embeds: [embed] });
+  }
+
   // ================= RESET COOLDOWN =================
   if (command === "resetcooldown") {
 
