@@ -155,19 +155,19 @@ Crunchyroll: ${stock.crunchyroll.length}`
       return message.reply("❌ Staff only.");
 
     const type = args[0]?.toLowerCase();
-    const email = args.slice(1).join(" ");
+    const search = args.slice(1).join(" ").toLowerCase();
 
-    if (!["steam","minecraft","crunchyroll"].includes(type))
-      return message.reply("Usage: .removestock steam/minecraft/crunchyroll email");
+    if (!stock[type])
+      return message.reply("Usage: .removestock steam email");
 
     const index = stock[type].findIndex(acc =>
-      acc.toLowerCase().startsWith(email.toLowerCase() + ":")
+      acc.toLowerCase().includes(search)
     );
 
     if (index === -1)
-      return message.reply("❌ Account not found in stock.");
+      return message.reply("❌ Account not found.");
 
-    const removed = stock[type].splice(index,1)[0];
+    const removed = stock[type].splice(index, 1)[0];
 
     return message.reply(`🗑 Removed account:\n\`${removed}\``);
   }
@@ -236,26 +236,6 @@ Stock: **${stock.minecraft.length}**
     return message.reply({ embeds: [embed] });
   }
 
-  // ================= RESET COOLDOWN =================
-  if (command === "resetcooldown") {
-
-    if (!OWNER_IDS.includes(message.author.id))
-      return message.reply("❌ Owner only.");
-
-    const user =
-      message.mentions.users.first() ||
-      await client.users.fetch(args[0]).catch(()=>null);
-
-    if (!user)
-      return message.reply("Usage: .resetcooldown @user");
-
-    ["steam","minecraft","crunchyroll"].forEach(type=>{
-      cooldown.delete(`${user.id}-${type}`);
-    });
-
-    return message.reply(`✅ Cooldowns reset for ${user.tag}`);
-  }
-
   // ================= GEN =================
   if (command === "gen") {
 
@@ -264,8 +244,11 @@ Stock: **${stock.minecraft.length}**
 
     const type = args[0]?.toLowerCase();
 
-    if (!["steam","minecraft","crunchyroll"].includes(type))
+    if (!stock[type])
       return message.reply("Usage: .gen steam | minecraft | crunchyroll");
+
+    if (stock[type].length === 0)
+      return message.reply("❌ Out of stock.");
 
     const cooldownKey = `${message.author.id}-${type}`;
     const now = Date.now();
