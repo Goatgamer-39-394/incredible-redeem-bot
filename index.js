@@ -13,7 +13,12 @@ const client = new Client({
 
 // ================= SETTINGS =================
 const PREFIX = ".";
-const OWNER_ID = "YOUR_DISCORD_USER_ID"; 
+const OWNER_IDS = [
+"1471837933429325855",
+"1121404311319089153",
+"1358359831140110426"
+];
+
 const STAFF_ROLE_ID = "1477887155106746380";
 const BANNER_URL = "https://your-banner-image-link.com/banner.png";
 
@@ -28,7 +33,7 @@ const stock = {
 
 const generatedCodes = new Map();
 const cooldown = new Map();
-const COOLDOWN_TIME = 2 * 60 * 60 * 1000; // 2 hours
+const COOLDOWN_TIME = 2 * 60 * 60 * 1000;
 
 // ================= CODE GENERATOR =================
 function generateCode(length) {
@@ -45,6 +50,7 @@ client.on("ready", () => {
 });
 
 client.on("messageCreate", async (message) => {
+
   if (!message.guild) return;
   if (message.author.bot) return;
   if (!message.content.startsWith(PREFIX)) return;
@@ -52,42 +58,198 @@ client.on("messageCreate", async (message) => {
   const args = message.content.slice(PREFIX.length).trim().split(/ +/);
   const command = args.shift().toLowerCase();
 
-  // ================= ENABLE / DISABLE =================
-  if (command === "enable" && message.author.id === OWNER_ID) {
+  // ================= ENABLE =================
+  if (command === "enable" && OWNER_IDS.includes(message.author.id)) {
     systemEnabled = true;
     return message.reply("✅ Redeem system enabled.");
   }
 
-  if (command === "disable" && message.author.id === OWNER_ID) {
+  // ================= DISABLE =================
+  if (command === "disable" && OWNER_IDS.includes(message.author.id)) {
     systemEnabled = false;
     return message.reply("🛑 Redeem system disabled.");
   }
 
-  // ================= ADD STOCK =================
+  // ================= OWNER DASHBOARD =================
+  if (command === "dashboard") {
+
+    if (!OWNER_IDS.includes(message.author.id))
+      return message.reply("❌ Owner only.");
+
+    const embed = new EmbedBuilder()
+      .setTitle("⚙️ Owner Dashboard")
+      .setDescription(
+`System: ${systemEnabled ? "ONLINE ✅" : "OFFLINE ❌"}
+
+Steam: ${stock.steam.length}
+Minecraft: ${stock.minecraft.length}
+Crunchyroll: ${stock.crunchyroll.length}`
+      )
+      .setColor("#ff9900")
+      .setTimestamp();
+
+    return message.reply({ embeds: [embed] });
+  }
+
+  // ================= CLEAR STOCK =================
+  if (command === "clearstock") {
+
+    if (!OWNER_IDS.includes(message.author.id))
+      return message.reply("❌ Owner only.");
+
+    const type = args[0];
+
+    if (!stock[type])
+      return message.reply("Usage: .clearstock steam/minecraft/crunchyroll");
+
+    stock[type] = [];
+
+    return message.reply(`🗑 Cleared ${type} stock.`);
+  }
+
+  // ================= ADD STOCK (MULTIPLE) =================
   if (command === "addstock") {
+
     if (!message.member.roles.cache.has(STAFF_ROLE_ID))
       return message.reply("❌ Staff only.");
 
     const type = args[0]?.toLowerCase();
-    const account = args.slice(1).join(" ");
 
-    if (!["steam", "minecraft", "crunchyroll"].includes(type))
-      return message.reply("❌ Usage: .addstock steam/minecraft/crunchyroll email:pass");
+    if (!["steam","minecraft","crunchyroll"].includes(type))
+      return message.reply("❌ Usage: .addstock steam/minecraft/crunchyroll");
 
-    if (!account.includes(":"))
-      return message.reply("❌ Format must be email:password");
+    const accountsText = message.content.split("\n").slice(1).join("\n");
 
-    stock[type].push(account);
-    return message.reply(`✅ Added 1 ${type} account.`);
+    if (!accountsText)
+      return message.reply("❌ Put accounts on new lines.");
+
+    const accounts = accountsText
+      .split("\n")
+      .map(a => a.trim())
+      .filter(a => a.includes(":"));
+
+    stock[type].push(...accounts);
+
+    return message.reply(`✅ Added ${accounts.length} ${type} accounts.`);
   }
 
-  // ================= STOCK =================
+  // ================= REMOVE STOCK =================
+  if (command === "removestock") {
+
+    if (!message.member.roles.cache.has(STAFF_ROLE_ID))
+      return message.reply("❌ Staff only.");
+
+    const type = args[0]?.toLowerCase();
+    const email = args[1];
+
+    if (!stock[type])
+      return message.reply("Usage: .removestock steam/minecraft/crunchyroll email");
+
+    const index = stock[type].findIndex(acc => acc.startsWith(email + ":"));
+
+    if (index === -1)
+      return message.reply("❌ Account not found.");
+
+    const removed = stock[type].splice(index,1)[0];
+
+    return message.reply(`🗑 Removed ${removed}`);
+  }
+
+  // ================= STAFF STOCK =================
+  if (command === "staffstock") {
+
+    if (!message.member.roles.cache.has(STAFF_ROLE_ID))
+      return message.reply("❌ Staff only.");
+
+    const type = args[0]?.toLowerCase();
+
+    if (!type) {
+
+      return message.reply(
+`📦 Stock
+
+Steam: ${stock.steam.length}
+Minecraft: ${stock.minecraft.length}
+Crunchyroll: ${stock.crunchyroll.length}`
+      );
+    }
+
+    if (!stock[type])
+      return message.reply("Usage: .staffstock steam/minecraft/crunchyroll");
+
+    if (stock[type].length === 0)
+      return message.reply(`❌ No ${type} accounts.`);
+
+    return message.reply(
+`📦 ${type.toUpperCase()} Accounts
+
+${stock[type].join("\n")}`
+    );
+  }
+
+  // ================= PUBLIC STOCK =================
   if (command === "stock") {
+
+    const steamStatus = stock.steam.length > 0 ? "ONLINE ✅" : "OFFLINE ❌";
+    const crunchyStatus = stock.crunchyroll.length > 0 ? "ONLINE ✅" : "OFFLINE ❌";
+    const minecraftStatus = stock.minecraft.length > 0 ? "ONLINE ✅" : "OFFLINE ❌";
+
+    return message.reply(
+`Steam - ${steamStatus}
+Crunchyroll - ${crunchyStatus}
+Minecraft - ${minecraftStatus}`
+    );
+  }
+
+  // ================= RESET COOLDOWN =================
+  if (command === "resetcooldown") {
+
+    if (!OWNER_IDS.includes(message.author.id))
+      return message.reply("❌ Owner only.");
+
+    const user =
+      message.mentions.users.first() ||
+      await client.users.fetch(args[0]).catch(()=>null);
+
+    if (!user)
+      return message.reply("Usage: .resetcooldown @user");
+
+    ["steam","minecraft","crunchyroll"].forEach(type=>{
+      cooldown.delete(`${user.id}-${type}`);
+    });
+
+    return message.reply(`✅ Cooldowns reset for ${user.tag}`);
+  }
+
+  // ================= STAFF HELP =================
+  if (command === "staffhelp") {
+
     if (!message.member.roles.cache.has(STAFF_ROLE_ID))
       return message.reply("❌ Staff only.");
 
     return message.reply(
-      `📦 Stock:\nSteam: ${stock.steam.length}\nMinecraft: ${stock.minecraft.length}\nCrunchyroll: ${stock.crunchyroll.length}`
+`🛠 Staff Commands
+
+.addstock
+.removestock
+.staffstock
+.staffstock (service)
+.resetcooldown`
+    );
+  }
+
+  // ================= MEMBER HELP =================
+  if (command === "ghelp") {
+
+    return message.reply(
+`🎁 Generator Commands
+
+.gen steam
+.gen minecraft
+.gen crunchyroll
+
+.stock
+.redeem CODE`
     );
   }
 
@@ -98,19 +260,27 @@ client.on("messageCreate", async (message) => {
       return message.reply("🛑 System disabled.");
 
     const type = args[0]?.toLowerCase();
-    if (!["steam", "minecraft", "crunchyroll"].includes(type))
+
+    if (!["steam","minecraft","crunchyroll"].includes(type))
       return message.reply("❌ Usage: .gen steam | minecraft | crunchyroll");
 
     const cooldownKey = `${message.author.id}-${type}`;
     const now = Date.now();
 
     if (cooldown.has(cooldownKey)) {
+
       const expiration = cooldown.get(cooldownKey) + COOLDOWN_TIME;
+
       if (now < expiration) {
+
         const timeLeft = expiration - now;
+
         const hours = Math.floor(timeLeft / 3600000);
         const minutes = Math.floor((timeLeft % 3600000) / 60000);
-        return message.reply(`⏳ Wait ${hours}h ${minutes}m before generating ${type} again.`);
+
+        return message.reply(
+`⏳ Wait ${hours}h ${minutes}m before generating ${type} again.`
+        );
       }
     }
 
@@ -118,33 +288,25 @@ client.on("messageCreate", async (message) => {
 
     const length = type === "steam" ? 3 : type === "minecraft" ? 5 : 6;
     const code = generateCode(length);
-    generatedCodes.set(code, type);
+
+    generatedCodes.set(code,type);
 
     const embed = new EmbedBuilder()
       .setTitle(`🎁 Incredible Gen ${type}`)
       .setDescription(
-`Follow these steps:
+`1️⃣ Create a redeem ticket
+2️⃣ Type .redeem ${code}
 
-1️⃣ Create a redeem ticket  
-2️⃣ Type \`.redeem ${code}\`  
-
-Your Code: **${code}**
-
-This is a ${length} character ${type} code.`
+Your Code: **${code}**`
       )
       .setColor("#8e44ff")
-      .setImage(BANNER_URL)
-      .setFooter({
-        text: "Incredible Services • Redeem inside tickets only",
-        iconURL: client.user.displayAvatarURL()
-      })
       .setTimestamp();
 
     await message.reply("📩 Check your DMs!");
 
-    try {
-      await message.author.send({ embeds: [embed] });
-    } catch {
+    try{
+      await message.author.send({ embeds:[embed] });
+    }catch{
       message.reply("❌ I cannot DM you.");
     }
   }
@@ -155,37 +317,10 @@ This is a ${length} character ${type} code.`
     if (!systemEnabled)
       return message.reply("🛑 System disabled.");
 
-    // ===== REDEEM HELP =====
-    if (args[0]?.toLowerCase() === "help") {
-      const helpEmbed = new EmbedBuilder()
-        .setTitle("🎟 Redeem Help")
-        .setDescription(
-`How to redeem:
-
-1️⃣ Use \`.gen steam | minecraft | crunchyroll\`
-2️⃣ Check your DMs for your code
-3️⃣ Create a redeem ticket
-4️⃣ Type \`.redeem YOURCODE\`
-
-⚠️ Rules:
-• Codes only work if generated by the bot
-• Codes expire after use
-• Do NOT share your code
-• If account doesn't work, staff can replace it`
-        )
-        .setColor("#8e44ff")
-        .setImage(BANNER_URL)
-        .setFooter({
-          text: "Incredible Services • Official Redeem System",
-          iconURL: client.user.displayAvatarURL()
-        })
-        .setTimestamp();
-
-      return message.reply({ embeds: [helpEmbed] });
-    }
-
     const code = args[0];
-    if (!code) return message.reply("❌ Provide a code.");
+
+    if (!code)
+      return message.reply("❌ Provide a code.");
 
     if (!generatedCodes.has(code))
       return message.reply("❌ Invalid or expired code.");
@@ -196,6 +331,7 @@ This is a ${length} character ${type} code.`
       return message.reply("❌ Out of stock.");
 
     const account = stock[type].shift();
+
     generatedCodes.delete(code);
 
     const embed = new EmbedBuilder()
@@ -203,20 +339,12 @@ This is a ${length} character ${type} code.`
       .setDescription(
 `Here is your ${type} account:
 
-\`${account}\`
-
-Please ask any questions to the staff and confirm you have received the account.
-If it does not work we can replace it.`
+\`${account}\``
       )
       .setColor("Green")
-      .setImage(BANNER_URL)
-      .setFooter({
-        text: "Incredible Services",
-        iconURL: client.user.displayAvatarURL()
-      })
       .setTimestamp();
 
-    message.channel.send({ embeds: [embed] });
+    message.channel.send({ embeds:[embed] });
   }
 
 });
