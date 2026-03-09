@@ -1,5 +1,4 @@
 const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
-const fs = require("fs");
 
 const client = new Client({
   intents: [
@@ -11,7 +10,7 @@ const client = new Client({
 
 const prefix = ".";
 const cooldown = new Map();
-const COOLDOWN = 60000;
+const cooldownTime = 60000;
 
 const gif = "https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif";
 
@@ -24,12 +23,12 @@ client.on("messageCreate", async (message) => {
   if (message.author.bot) return;
   if (!message.content.startsWith(prefix)) return;
 
-  const args = message.content.slice(prefix.length).split(/ +/);
+  const args = message.content.slice(prefix.length).trim().split(/ +/);
   const command = args.shift().toLowerCase();
 
-  // ======================
+  // =================
   // GEN COMMAND
-  // ======================
+  // =================
 
   if (command === "gen") {
 
@@ -41,54 +40,29 @@ client.on("messageCreate", async (message) => {
 
       if (timeLeft > 0) {
 
-        const embed = new EmbedBuilder()
+        const cdEmbed = new EmbedBuilder()
         .setDescription(`⏳ Please wait **${timeLeft.toFixed(0)} seconds** before generating again.`)
-        .setColor("#5865F2")
+        .setColor("#8A2BE2")
         .setFooter({ text: "Incredible Services" });
 
-        return message.reply({ embeds: [embed] });
+        return message.reply({ embeds: [cdEmbed] });
       }
     }
 
-    cooldown.set(user, Date.now() + COOLDOWN);
+    cooldown.set(user, Date.now() + cooldownTime);
 
     const service = args[0];
 
     if (!service) return;
 
-    const file = `./stock/${service}.txt`;
-
-    if (!fs.existsSync(file)) {
-
-      const embed = new EmbedBuilder()
-      .setDescription("❌ Service not found.")
-      .setColor("#5865F2")
-      .setFooter({ text: "Incredible Services" });
-
-      return message.reply({ embeds: [embed] });
-    }
-
-    const accounts = fs.readFileSync(file, "utf8").split("\n").filter(Boolean);
-
-    if (accounts.length === 0) {
-
-      const embed = new EmbedBuilder()
-      .setDescription("❌ Stock empty.")
-      .setColor("#5865F2")
-      .setFooter({ text: "Incredible Services" });
-
-      return message.reply({ embeds: [embed] });
-    }
-
-    const account = accounts.shift();
-
-    fs.writeFileSync(file, accounts.join("\n"));
-
     const serviceName = service.charAt(0).toUpperCase() + service.slice(1);
 
-    const embed = new EmbedBuilder()
+    const code = Math.random().toString(36).substring(2, 7);
+
+    const dmEmbed = new EmbedBuilder()
     .setTitle(`Incredible Gen ${serviceName}`)
-    .setDescription(`Thanks for using our service!
+    .setDescription(`
+Thanks for using **Incredible Services**!
 
 Follow these steps:
 
@@ -96,20 +70,21 @@ Follow these steps:
 **Step 2:** Create a ticket  
 **Step 3:** Type this command:
 
-\`.redeem ${service} ${account}\`
+\`.redeem ${service} ${code}\`
 
-Thanks for using our service! If it doesn't work ping staff for assistance or replacement.`)
+Thanks for using our service! If it doesn't work ping staff for assistance or replacement.
+`)
     .setImage(gif)
-    .setColor("#5865F2")
+    .setColor("#8A2BE2")
     .setFooter({ text: "Incredible Services" });
 
     try {
 
-      await message.author.send({ embeds: [embed] });
+      await message.author.send({ embeds: [dmEmbed] });
 
       const sent = new EmbedBuilder()
       .setDescription("📩 Check your DMs.")
-      .setColor("#5865F2")
+      .setColor("#8A2BE2")
       .setFooter({ text: "Incredible Services" });
 
       message.reply({ embeds: [sent] });
@@ -117,8 +92,8 @@ Thanks for using our service! If it doesn't work ping staff for assistance or re
     } catch {
 
       const error = new EmbedBuilder()
-      .setDescription("❌ I couldn't DM you.")
-      .setColor("#5865F2")
+      .setDescription("❌ I couldn't DM you. Enable DMs.")
+      .setColor("#8A2BE2")
       .setFooter({ text: "Incredible Services" });
 
       message.reply({ embeds: [error] });
@@ -127,35 +102,65 @@ Thanks for using our service! If it doesn't work ping staff for assistance or re
 
   }
 
-  // ======================
+  // =================
   // STOCK COMMAND
-  // ======================
+  // =================
 
   if (command === "stock") {
 
-    const steam = fs.existsSync("./stock/steam.txt")
-      ? fs.readFileSync("./stock/steam.txt","utf8").split("\n").filter(Boolean).length
-      : 0;
-
-    const minecraft = fs.existsSync("./stock/minecraft.txt")
-      ? fs.readFileSync("./stock/minecraft.txt","utf8").split("\n").filter(Boolean).length
-      : 0;
-
-    const crunchyroll = fs.existsSync("./stock/crunchyroll.txt")
-      ? fs.readFileSync("./stock/crunchyroll.txt","utf8").split("\n").filter(Boolean).length
-      : 0;
-
-    const embed = new EmbedBuilder()
-    .setTitle("Incredible Stock")
+    const stockEmbed = new EmbedBuilder()
+    .setTitle("⚡ INCREDIBLE GENERATOR STOCK")
     .setDescription(`
-🎮 **Steam**: \`${steam}\`
-⛏ **Minecraft**: \`${minecraft}\`
-🍿 **Crunchyroll**: \`${crunchyroll}\`
+╔══════════════════════╗
+
+🎮 **STEAM**  
+🟢 ONLINE  
+Stock: ∞  
+
+🍿 **CRUNCHYROLL**  
+🟢 ONLINE  
+Stock: ∞  
+
+⛏ **MINECRAFT**  
+🟢 ONLINE  
+Stock: ∞  
+
+╚══════════════════════╝
+
+🚀 Use \`.gen steam | minecraft | crunchyroll\`
 `)
-    .setColor("#5865F2")
+    .setColor("#8A2BE2")
     .setFooter({ text: "Incredible Services" });
 
-    message.reply({ embeds: [embed] });
+    message.channel.send({ embeds: [stockEmbed] });
+
+  }
+
+  // =================
+  // REDEEM COMMAND
+  // =================
+
+  if (command === "redeem") {
+
+    const service = args[0];
+
+    if (!service) return;
+
+    const serviceName = service.charAt(0).toUpperCase() + service.slice(1);
+
+    const redeemEmbed = new EmbedBuilder()
+    .setTitle("Redeem Successful")
+    .setDescription(`
+Your **${serviceName}** account has been redeemed.
+
+Enjoy the service!
+
+If there are any issues please **ping staff** for assistance or replacement.
+`)
+    .setColor("#8A2BE2")
+    .setFooter({ text: "Incredible Services" });
+
+    message.channel.send({ embeds: [redeemEmbed] });
 
   }
 
