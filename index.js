@@ -34,14 +34,11 @@ const stock = {
 
 const generatedCodes = new Map();
 const cooldown = new Map();
-
 const COOLDOWN_TIME = 2 * 60 * 60 * 1000;
 
 // ================= CODE GENERATOR =================
 function generateCode(length) {
-
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-
   let result = "";
 
   for (let i = 0; i < length; i++) {
@@ -51,10 +48,8 @@ function generateCode(length) {
   return result;
 }
 
-client.once("ready", () => {
-
+client.on("ready", () => {
   console.log(`Logged in as ${client.user.tag}`);
-
 });
 
 // ================= COMMAND HANDLER =================
@@ -72,20 +67,14 @@ client.on("messageCreate", async (message) => {
 
   // ================= ENABLE =================
   if (command === "enable" && isOwner) {
-
     systemEnabled = true;
-
     return message.reply("✅ Redeem system enabled.");
-
   }
 
   // ================= DISABLE =================
   if (command === "disable" && isOwner) {
-
     systemEnabled = false;
-
     return message.reply("🛑 Redeem system disabled.");
-
   }
 
   // ================= DASHBOARD =================
@@ -99,14 +88,12 @@ client.on("messageCreate", async (message) => {
     const minutes = Math.floor((uptime % 3600) / 60);
 
     const embed = new EmbedBuilder()
-
-      .setTitle("⚙️ GENERATOR DASHBOARD")
-
+      .setTitle("⚙️ OWNER DASHBOARD")
       .setDescription(`
-**System Status**
-${systemEnabled ? "🟢 ONLINE" : "🔴 OFFLINE"}
+**System**
+Status: ${systemEnabled ? "🟢 ONLINE" : "🔴 OFFLINE"}
 
-**Bot Info**
+**Bot**
 Ping: ${client.ws.ping}ms
 Uptime: ${hours}h ${minutes}m
 
@@ -115,23 +102,19 @@ Steam: ${stock.steam.length}
 Minecraft: ${stock.minecraft.length}
 Crunchyroll: ${stock.crunchyroll.length}
 
-**Generated Codes**
+**Generator**
 Active Codes: ${generatedCodes.size}
-
-**Cooldown**
-${COOLDOWN_TIME / 3600000} Hours
+Cooldown: ${COOLDOWN_TIME / 3600000} hours
 
 **Permissions**
 Owners: ${OWNER_IDS.length}
 Staff Role: <@&${STAFF_ROLE_ID}>
 `)
-
       .setColor("#ff9900")
       .setImage(BANNER_URL)
       .setFooter({ text: "Incredible Services" });
 
-    return message.reply({ embeds: [embed] });
-
+    return message.reply({ embeds:[embed] });
   }
 
   // ================= ADD STOCK =================
@@ -153,7 +136,6 @@ Staff Role: <@&${STAFF_ROLE_ID}>
     stock[type].push(account);
 
     return message.reply(`✅ Added 1 ${type} account.`);
-
   }
 
   // ================= STAFF STOCK =================
@@ -169,16 +151,13 @@ Steam: ${stock.steam.length}
 Minecraft: ${stock.minecraft.length}
 Crunchyroll: ${stock.crunchyroll.length}
 `);
-
   }
 
   // ================= PUBLIC STOCK =================
   if (command === "stock") {
 
     const embed = new EmbedBuilder()
-
       .setTitle("⚡ INCREDIBLE GENERATOR STOCK")
-
       .setDescription(`
 🎮 **STEAM**
 Stock: ${stock.steam.length}
@@ -189,15 +168,13 @@ Stock: ${stock.crunchyroll.length}
 ⛏ **MINECRAFT**
 Stock: ${stock.minecraft.length}
 
-Use \`.gen steam | minecraft | crunchyroll\`
+🚀 Use \`.gen steam | minecraft | crunchyroll\`
 `)
-
       .setColor("#8e44ff")
       .setImage(BANNER_URL)
       .setFooter({ text: "Incredible Services" });
 
-    return message.reply({ embeds: [embed] });
-
+    return message.reply({ embeds:[embed] });
   }
 
   // ================= GEN =================
@@ -231,65 +208,63 @@ Use \`.gen steam | minecraft | crunchyroll\`
 
     cooldown.set(cooldownKey, now);
 
+    // LOADING 0%
     const loading = new EmbedBuilder()
-
-      .setTitle("⚙️ Generating Account")
-
+      .setTitle("⏳ Generating Account...")
       .setDescription(`
-Generating **${type}**
+Please wait while we prepare your account.
 
 \`\`\`
 [░░░░░░░░░░] 0%
 \`\`\`
 `)
-
       .setColor("#f1c40f")
-      .setImage(BANNER_URL);
+      .setImage(BANNER_URL)
+      .setFooter({ text: "Incredible Services" });
 
     const loadingMsg = await message.reply({ embeds:[loading] });
 
+    // 40%
     setTimeout(async () => {
 
       const embed2 = new EmbedBuilder()
-
-        .setTitle("⚙️ Generating Account")
-
+        .setTitle("⏳ Generating Account...")
         .setDescription(`
-Generating **${type}**
+Please wait while we prepare your account.
 
 \`\`\`
 [████░░░░░░] 40%
 \`\`\`
 `)
-
         .setColor("#f1c40f")
-        .setImage(BANNER_URL);
+        .setImage(BANNER_URL)
+        .setFooter({ text: "Incredible Services" });
 
       await loadingMsg.edit({ embeds:[embed2] });
 
     },1000);
 
+    // 80%
     setTimeout(async () => {
 
       const embed3 = new EmbedBuilder()
-
-        .setTitle("⚙️ Generating Account")
-
+        .setTitle("⏳ Generating Account...")
         .setDescription(`
-Generating **${type}**
+Please wait while we prepare your account.
 
 \`\`\`
 [████████░░] 80%
 \`\`\`
 `)
-
         .setColor("#f1c40f")
-        .setImage(BANNER_URL);
+        .setImage(BANNER_URL)
+        .setFooter({ text: "Incredible Services" });
 
       await loadingMsg.edit({ embeds:[embed3] });
 
     },2000);
 
+    // SUCCESS
     setTimeout(async () => {
 
       const length = type === "steam" ? 3 : type === "minecraft" ? 5 : 6;
@@ -298,51 +273,56 @@ Generating **${type}**
 
       generatedCodes.set(code,type);
 
-      const success = new EmbedBuilder()
-
+      const successEmbed = new EmbedBuilder()
         .setTitle("SUCCESS ✅")
-
-        .setDescription(`Code sent to your DMs`)
-
+        .setDescription(`Success ${message.author}! I've sent the account **${type}** details to your DMs.`)
         .setColor("#57F287")
-        .setImage(BANNER_URL);
+        .setImage(BANNER_URL)
+        .setFooter({ text: "Incredible Services" });
 
-      await loadingMsg.edit({ embeds:[success] });
+      await loadingMsg.edit({ embeds:[successEmbed] });
 
       try{
 
         const embed = new EmbedBuilder()
+        .setTitle(`🎁 Incredible Generator`)
+        .setDescription(
+`Follow these steps:
 
-          .setTitle("🎁 Incredible Generator")
+1️⃣ Create a redeem ticket  
+2️⃣ Type \`.redeem ${code}\`
 
-          .setDescription(`
-Create a ticket and type:
+Your Code: **${code}**
 
-.redeem **${code}**
-`)
-
-          .setColor("#8e44ff")
-          .setImage(BANNER_URL);
+Thanks for using our service! If it doesn't work ping staff for assistance or replacement.`
+        )
+        .setColor("#8e44ff")
+        .setImage(BANNER_URL)
+        .setFooter({ text: "Incredible Services" });
 
         await message.author.send({ embeds:[embed] });
 
       }catch{
 
         message.reply("❌ I cannot DM you.");
-
       }
 
     },3000);
-
   }
 
   // ================= REDEEM =================
   if (command === "redeem") {
 
+    if (!systemEnabled)
+      return message.reply("🛑 System disabled.");
+
     const code = args[0];
 
+    if (!code)
+      return message.reply("❌ Provide a code.");
+
     if (!generatedCodes.has(code))
-      return message.reply("❌ Invalid code.");
+      return message.reply("❌ Invalid or expired code.");
 
     const type = generatedCodes.get(code);
 
@@ -350,26 +330,25 @@ Create a ticket and type:
       return message.reply("❌ Out of stock.");
 
     const randomIndex = Math.floor(Math.random() * stock[type].length);
-
     const account = stock[type][randomIndex];
 
     generatedCodes.delete(code);
 
     const embed = new EmbedBuilder()
-
       .setTitle("🎉 Account Redeemed")
-
       .setDescription(`
-${type} account:
+**Your ${type} account:**
 
 \`${account}\`
-`)
 
+Thanks for using our service!
+If it doesn't work **ping staff for assistance or replacement.**
+`)
       .setColor("Green")
-      .setImage(BANNER_URL);
+      .setImage(BANNER_URL)
+      .setFooter({ text: "Incredible Services" });
 
     message.channel.send({ embeds:[embed] });
-
   }
 
 });
