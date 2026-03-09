@@ -1,11 +1,11 @@
 const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 
 const client = new Client({
-intents: [
-GatewayIntentBits.Guilds,
-GatewayIntentBits.GuildMessages,
-GatewayIntentBits.MessageContent
-]
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.MessageContent
+  ]
 });
 
 const PREFIX = ".";
@@ -13,9 +13,9 @@ const PREFIX = ".";
 const STAFF_ROLE = "1478005454495023104";
 
 const OWNER_IDS = [
-"1471837933429325855",
-"1358359831140110426",
-"1121404311319089153"
+  "1471837933429325855",
+  "1358359831140110426",
+  "1121404311319089153"
 ];
 
 let stock = {};
@@ -23,29 +23,29 @@ let generatedCodes = new Map();
 let redeemLog = {};
 
 client.once("ready", () => {
-console.log(`${client.user.tag} is online`);
+  console.log(`${client.user.tag} is online`);
 });
 
 client.on("messageCreate", async (message) => {
 
-if (message.author.bot) return;
-if (!message.content.startsWith(PREFIX)) return;
+  if (message.author.bot) return;
+  if (!message.content.startsWith(PREFIX)) return;
 
-const args = message.content.slice(PREFIX.length).trim().split(/ +/);
-const command = args.shift().toLowerCase();
+  const args = message.content.slice(PREFIX.length).trim().split(/ +/);
+  const command = args.shift().toLowerCase();
 
-const isStaff =
-message.member.roles.cache.has(STAFF_ROLE) ||
-OWNER_IDS.includes(message.author.id);
+  const isStaff =
+    message.member?.roles.cache.has(STAFF_ROLE) ||
+    OWNER_IDS.includes(message.author.id);
 
-/* ================= HELP ================= */
+  /* ================= HELP ================= */
 
-if (command === "help") {
+  if (command === "help") {
 
-const embed = new EmbedBuilder()
-.setTitle("📜 Help Menu")
-.setColor("Blue")
-.setDescription(`
+    const embed = new EmbedBuilder()
+      .setTitle("📜 Help Menu")
+      .setColor("Blue")
+      .setDescription(`
 .redeem <code>
 Redeem a generated code
 
@@ -53,33 +53,25 @@ Redeem a generated code
 Show help menu
 `);
 
-return message.channel.send({embeds:[embed]});
-}
+    return message.channel.send({ embeds: [embed] });
+  }
 
-/* ================= STAFF HELP ================= */
+  /* ================= STAFF HELP ================= */
 
-if (command === "staffhelp") {
+  if (command === "staffhelp") {
 
-if (!isStaff) return;
+    if (!isStaff) return;
 
-const embed = new EmbedBuilder()
-.setTitle("🛠 Staff Commands")
-.setColor("Orange")
-.setDescription(`
+    const embed = new EmbedBuilder()
+      .setTitle("🛠 Staff Commands")
+      .setColor("Orange")
+      .setDescription(`
 .gen <service>
 
 .addstock <service> <account>
 
-.removestock <service> <account>
-
-.removefirst <service>
-
-.removelast <service>
-
-.removeamount <service> <amount>
-
 .staffstock
-Show all stock counts
+Show stock counts
 
 .staffstock <service>
 Show accounts
@@ -88,223 +80,216 @@ Show accounts
 Full generator overview
 `);
 
-return message.channel.send({embeds:[embed]});
-}
+    return message.channel.send({ embeds: [embed] });
+  }
 
-/* ================= ADD STOCK ================= */
+  /* ================= ADD STOCK ================= */
 
-if (command === "addstock") {
+  if (command === "addstock") {
 
-if (!isStaff) return message.reply("❌ No permission");
+    if (!isStaff) return message.reply("❌ No permission");
 
-const service = args[0];
-const account = args.slice(1).join(" ");
+    const service = args[0];
+    const account = args.slice(1).join(" ");
 
-if (!service || !account)
-return message.reply("Usage: .addstock <service> <account>");
+    if (!service || !account)
+      return message.reply("Usage: .addstock <service> <account>");
 
-if (!stock[service]) stock[service] = [];
+    if (!stock[service]) stock[service] = [];
 
-stock[service].push(account);
+    stock[service].push(account);
 
-message.reply(`✅ Added to **${service}** stock`);
-}
+    message.reply(`✅ Added to **${service}** stock`);
+  }
 
-/* ================= GEN ================= */
+  /* ================= GEN ================= */
 
-if (command === "gen") {
+  if (command === "gen") {
 
-if (!isStaff) return;
+    if (!isStaff) return;
 
-const service = args[0];
+    const service = args[0];
 
-if (!service)
-return message.reply("❌ Provide a service");
+    if (!service)
+      return message.reply("❌ Provide a service");
 
-/* code generators */
+    function randomChars(length) {
+      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+      let result = "";
+      for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return result;
+    }
 
-function randomChars(length){
-const chars="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-let result="";
-for(let i=0;i<length;i++){
-result+=chars.charAt(Math.floor(Math.random()*chars.length));
-}
-return result;
-}
+    function randomDigits(length) {
+      let result = "";
+      for (let i = 0; i < length; i++) {
+        result += Math.floor(Math.random() * 10);
+      }
+      return result;
+    }
 
-function randomDigits(length){
-let result="";
-for(let i=0;i<length;i++){
-result+=Math.floor(Math.random()*10);
-}
-return result;
-}
+    let code;
 
-let code;
+    if (service === "minecraft") {
+      code = randomChars(5);
+    } else if (service === "crunchyroll") {
+      code = randomChars(6);
+    } else if (service === "steam") {
+      code = randomDigits(3);
+    } else {
+      code = randomChars(6);
+    }
 
-if(service==="minecraft"){
-code=randomChars(5);
-}
-else if(service==="crunchyroll"){
-code=randomChars(6);
-}
-else if(service==="steam"){
-code=randomDigits(3);
-}
-else{
-code=randomChars(6);
-}
+    generatedCodes.set(code, service);
 
-generatedCodes.set(code,service);
-
-/* DM embed */
-
-const dmEmbed = new EmbedBuilder()
-.setColor("#7b2cbf")
-.setTitle(`🎁 Incredible Gen ${service}`)
-.setDescription(`
+    const dmEmbed = new EmbedBuilder()
+      .setColor("#7b2cbf")
+      .setTitle(`🎁 Incredible Gen ${service}`)
+      .setDescription(`
 1️⃣ Create a redeem ticket
 2️⃣ Type .redeem ${code}
 
 Your Code: **${code}**
 `)
-.setImage("https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif");
+      .setImage("https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif");
 
-/* success embed in server */
+    const successEmbed = new EmbedBuilder()
+      .setColor("Green")
+      .setTitle("SUCCESS ✅")
+      .setDescription(`
+Success ${message.author} I've sent the **${service}** code to your DMs.
+`)
+      .setImage("https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif");
 
-const successEmbed = new EmbedBuilder()
-.setColor("Green")
-.setTitle("SUCCESS ✅")
-.setDescription(`
-Success ${message.author} I've sent the account steam details to your DMs.
-.setImage("https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif");
+    try {
 
-try{
+      await message.author.send({ embeds: [dmEmbed] });
 
-await message.author.send({embeds:[dmEmbed]});
+      message.channel.send({ embeds: [successEmbed] });
 
-message.channel.send({embeds:[successEmbed]});
+    } catch {
 
-}catch{
+      message.reply("❌ Enable DMs");
 
-message.reply("❌ Enable DMs");
+    }
 
-}
+  }
 
-}
+  /* ================= REDEEM ================= */
 
-/* ================= REDEEM ================= */
+  if (command === "redeem") {
 
-if (command === "redeem") {
+    const code = args[0];
 
-const code = args[0];
+    if (!generatedCodes.has(code))
+      return message.reply("❌ Invalid code");
 
-if (!generatedCodes.has(code))
-return message.reply("❌ Invalid code");
+    const service = generatedCodes.get(code);
 
-const service = generatedCodes.get(code);
+    if (!stock[service] || stock[service].length === 0)
+      return message.reply("❌ Out of stock");
 
-if (!stock[service] || stock[service].length === 0)
-return message.reply("❌ Out of stock");
+    const randomIndex = Math.floor(Math.random() * stock[service].length);
+    const account = stock[service][randomIndex];
 
-const randomIndex = Math.floor(Math.random() * stock[service].length);
+    generatedCodes.delete(code);
 
-const account = stock[service][randomIndex];
+    if (!redeemLog[service]) redeemLog[service] = [];
 
-generatedCodes.delete(code);
+    redeemLog[service].push({
+      user: message.author.username,
+      account: account
+    });
 
-if (!redeemLog[service]) redeemLog[service] = [];
-
-redeemLog[service].push({
-user: message.author.username,
-account: account
-});
-
-const embed = new EmbedBuilder()
-.setColor("Green")
-.setTitle("🎉 Account Redeemed")
-.setDescription(`
+    const embed = new EmbedBuilder()
+      .setColor("Green")
+      .setTitle("🎉 Account Redeemed")
+      .setDescription(`
 Service: **${service}**
 
 Account:
 \`${account}\`
 `);
 
-message.channel.send({embeds:[embed]});
-}
+    message.channel.send({ embeds: [embed] });
+  }
 
-/* ================= STAFF STOCK ================= */
+  /* ================= STAFF STOCK ================= */
 
-if (command === "staffstock") {
+  if (command === "staffstock") {
 
-if (!isStaff) return;
+    if (!isStaff) return;
 
-const service = args[0];
+    const service = args[0];
 
-if (!service) {
+    if (!service) {
 
-let list = "";
+      let list = "";
 
-for (const s in stock) {
-list += `${s} : ${stock[s].length} accounts\n`;
-}
+      for (const s in stock) {
+        list += `${s} : ${stock[s].length} accounts\n`;
+      }
 
-const embed = new EmbedBuilder()
-.setTitle("📦 Stock Overview")
-.setDescription(list || "No stock");
+      const embed = new EmbedBuilder()
+        .setTitle("📦 Stock Overview")
+        .setDescription(list || "No stock");
 
-return message.channel.send({embeds:[embed]});
-}
+      return message.channel.send({ embeds: [embed] });
+    }
 
-if (!stock[service])
-return message.reply("❌ Service not found");
+    if (!stock[service])
+      return message.reply("❌ Service not found");
 
-const accounts = stock[service].join("\n");
+    const accounts = stock[service].join("\n");
 
-const embed = new EmbedBuilder()
-.setTitle(`📦 ${service} Stock`)
-.setDescription("```"+accounts+"```");
+    const embed = new EmbedBuilder()
+      .setTitle(`📦 ${service} Stock`)
+      .setDescription("```" + accounts + "```");
 
-message.channel.send({embeds:[embed]});
-}
+    message.channel.send({ embeds: [embed] });
+  }
 
-/* ================= DASHBOARD ================= */
+  /* ================= DASHBOARD ================= */
 
-if (command === "dashboard") {
+  if (command === "dashboard") {
 
-if (!isStaff) return;
+    if (!isStaff) return;
 
-let text = "";
+    let text = "";
 
-for (const service in stock) {
+    for (const service in stock) {
 
-text += `\n📦 ${service} (${stock[service].length})\n`;
+      text += `\n📦 ${service} (${stock[service].length})\n`;
 
-text += "Accounts:\n";
+      text += "Accounts:\n";
 
-stock[service].forEach(acc=>{
-text += `- ${acc}\n`;
-});
+      stock[service].forEach(acc => {
+        text += `- ${acc}\n`;
+      });
 
-if (redeemLog[service]) {
+      if (redeemLog[service]) {
 
-text += "\nRedeemed:\n";
+        text += "\nRedeemed:\n";
 
-redeemLog[service].forEach(r=>{
-text += `- ${r.user} → ${r.account}\n`;
-});
-}
+        redeemLog[service].forEach(r => {
+          text += `- ${r.user} → ${r.account}\n`;
+        });
 
-text += "\n---------------------\n";
-}
+      }
 
-const embed = new EmbedBuilder()
-.setTitle("📊 Generator Dashboard")
-.setColor("Purple")
-.setDescription("```"+text.slice(0,4000)+"```");
+      text += "\n---------------------\n";
 
-message.channel.send({embeds:[embed]});
-}
+    }
+
+    const embed = new EmbedBuilder()
+      .setTitle("📊 Generator Dashboard")
+      .setColor("Purple")
+      .setDescription("```" + text.slice(0, 4000) + "```");
+
+    message.channel.send({ embeds: [embed] });
+  }
 
 });
 
