@@ -11,7 +11,9 @@ const client = new Client({
 });
 
 // ================= SETTINGS =================
+
 const PREFIX = ".";
+
 const OWNER_IDS = [
 "1471837933429325855",
 "1121404311319089153",
@@ -25,6 +27,7 @@ const BANNER_URL = "https://cdn.discordapp.com/attachments/1474387569818079395/1
 let systemEnabled = true;
 
 // ================= STORAGE =================
+
 const stock = {
   steam: [],
   minecraft: [],
@@ -33,9 +36,11 @@ const stock = {
 
 const generatedCodes = new Map();
 const cooldown = new Map();
+
 const COOLDOWN_TIME = 2 * 60 * 60 * 1000;
 
 // ================= CODE GENERATOR =================
+
 function generateCode(length) {
 
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -52,6 +57,8 @@ function generateCode(length) {
 
 }
 
+// ================= READY =================
+
 client.on("ready", () => {
 
   console.log(`Logged in as ${client.user.tag}`);
@@ -59,6 +66,7 @@ client.on("ready", () => {
 });
 
 // ================= COMMAND HANDLER =================
+
 client.on("messageCreate", async (message) => {
 
   if (!message.guild) return;
@@ -69,33 +77,32 @@ client.on("messageCreate", async (message) => {
   const command = args.shift().toLowerCase();
 
   // ================= ENABLE =================
+
   if (command === "enable" && OWNER_IDS.includes(message.author.id)) {
 
     systemEnabled = true;
-
     return message.reply("✅ Redeem system enabled.");
 
   }
 
   // ================= DISABLE =================
+
   if (command === "disable" && OWNER_IDS.includes(message.author.id)) {
 
     systemEnabled = false;
-
     return message.reply("🛑 Redeem system disabled.");
 
   }
 
   // ================= OWNER DASHBOARD =================
+
   if (command === "dashboard") {
 
     if (!OWNER_IDS.includes(message.author.id))
       return message.reply("❌ Owner only.");
 
     const embed = new EmbedBuilder()
-
       .setTitle("⚙️ Owner Dashboard")
-
       .setDescription(
 `System: ${systemEnabled ? "ONLINE ✅" : "OFFLINE ❌"}
 
@@ -103,7 +110,6 @@ Steam: ${stock.steam.length}
 Minecraft: ${stock.minecraft.length}
 Crunchyroll: ${stock.crunchyroll.length}`
       )
-
       .setColor("#ff9900")
       .setTimestamp();
 
@@ -112,6 +118,7 @@ Crunchyroll: ${stock.crunchyroll.length}`
   }
 
   // ================= ADD STOCK =================
+
   if (command === "addstock") {
 
     if (!message.member.roles.cache.has(STAFF_ROLE_ID))
@@ -142,6 +149,7 @@ Crunchyroll: ${stock.crunchyroll.length}`
   }
 
   // ================= STAFF STOCK =================
+
   if (command === "staffstock") {
 
     if (!message.member.roles.cache.has(STAFF_ROLE_ID))
@@ -176,12 +184,11 @@ ${stock[type].join("\n")}`
   }
 
   // ================= PUBLIC STOCK =================
+
   if (command === "stock") {
 
     const embed = new EmbedBuilder()
-
       .setTitle("⚡ INCREDIBLE GENERATOR STOCK")
-
       .setDescription(
 `🎮 **STEAM**
 🟢 ONLINE
@@ -197,7 +204,6 @@ Stock: ${stock.minecraft.length}
 
 🚀 Use \`.gen steam | minecraft | crunchyroll\``
       )
-
       .setColor("#8e44ff")
       .setImage(BANNER_URL)
       .setTimestamp();
@@ -207,6 +213,7 @@ Stock: ${stock.minecraft.length}
   }
 
   // ================= GEN =================
+
   if (command === "gen") {
 
     if (!systemEnabled)
@@ -245,28 +252,33 @@ Stock: ${stock.minecraft.length}
 
     generatedCodes.set(code,type);
 
+    const successEmbed = new EmbedBuilder()
+      .setTitle("SUCCESS ✅")
+      .setDescription(`Success ${message.author}! I've sent the account **${type}** details to your DMs.`)
+      .setColor("#57F287")
+      .setImage(BANNER_URL)
+      .setTimestamp();
+
+    await message.reply({ embeds: [successEmbed] });
+
     const embed = new EmbedBuilder()
-
-      .setTitle(`🎁 Incredible Generator`)
-
+      .setTitle("🎁 Incredible Generator")
       .setDescription(
 `1️⃣ Create a redeem ticket
-2️⃣ Type .redeem ${code}
+2️⃣ Type \`.redeem ${code}\`
 
-Your Code: **${code}**`
+🔑 **Your Code:** \`${code}\`
+🎮 **Service:** ${type.toUpperCase()}`
       )
-
       .setColor("#8e44ff")
       .setImage(BANNER_URL)
       .setTimestamp();
 
-    await message.reply("📩 I've sent the account details to your DMs.");
-
-    try{
+    try {
 
       await message.author.send({ embeds:[embed] });
 
-    }catch{
+    } catch {
 
       message.reply("❌ I cannot DM you.");
 
@@ -275,6 +287,7 @@ Your Code: **${code}**`
   }
 
   // ================= REDEEM =================
+
   if (command === "redeem") {
 
     if (!systemEnabled)
@@ -298,11 +311,8 @@ Your Code: **${code}**`
     generatedCodes.delete(code);
 
     const embed = new EmbedBuilder()
-
       .setTitle("🎉 Account Redeemed")
-
       .setDescription(`\`${account}\``)
-
       .setColor("Green")
       .setTimestamp();
 
