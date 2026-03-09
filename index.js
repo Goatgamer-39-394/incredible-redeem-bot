@@ -224,7 +224,7 @@ Stock: ${stock.minecraft.length}
     // SUCCESS EMBED (ONLY CHANGE)
     const successEmbed = new EmbedBuilder()
       .setTitle("SUCCESS")
-      .setDescription(`Success ${message.author}! I've sent the account **${type}** details to your DMs.`)
+      .setDescription(`Success ${message.author}! I've sent the account details to your DMs.`)
       .setColor("#57F287")
       .setImage(BANNER_URL)
       .setTimestamp();
