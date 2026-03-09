@@ -38,8 +38,6 @@ const isStaff =
 message.member.roles.cache.has(STAFF_ROLE) ||
 OWNER_IDS.includes(message.author.id);
 
-
-
 /* ================= HELP ================= */
 
 if (command === "help") {
@@ -58,8 +56,6 @@ Show help menu
 return message.channel.send({embeds:[embed]});
 
 }
-
-
 
 /* ================= STAFF HELP ================= */
 
@@ -97,8 +93,6 @@ return message.channel.send({embeds:[embed]});
 
 }
 
-
-
 /* ================= ADD STOCK ================= */
 
 if (command === "addstock") {
@@ -119,8 +113,6 @@ message.reply(`✅ Added to **${service}** stock`);
 
 }
 
-
-
 /* ================= REMOVE STOCK ================= */
 
 if (command === "removestock") {
@@ -139,8 +131,6 @@ message.reply("✅ Account removed");
 
 }
 
-
-
 /* ================= REMOVE FIRST ================= */
 
 if (command === "removefirst") {
@@ -158,8 +148,6 @@ message.reply("✅ First account removed");
 
 }
 
-
-
 /* ================= REMOVE LAST ================= */
 
 if (command === "removelast") {
@@ -176,8 +164,6 @@ stock[service].pop();
 message.reply("✅ Last account removed");
 
 }
-
-
 
 /* ================= REMOVE AMOUNT ================= */
 
@@ -197,9 +183,7 @@ message.reply(`✅ Removed ${amount} accounts`);
 
 }
 
-
-
-/* ================= GEN CODE ================= */
+/* ================= GEN ================= */
 
 if (command === "gen") {
 
@@ -211,61 +195,62 @@ if (!stock[service])
 return message.reply("❌ Service not found");
 
 function randomChars(length){
-const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-let result = "";
+const chars="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+let result="";
 for(let i=0;i<length;i++){
-result += chars.charAt(Math.floor(Math.random()*chars.length));
+result+=chars.charAt(Math.floor(Math.random()*chars.length));
 }
 return result;
 }
 
 function randomDigits(length){
-let result = "";
+let result="";
 for(let i=0;i<length;i++){
-result += Math.floor(Math.random()*10);
+result+=Math.floor(Math.random()*10);
 }
 return result;
 }
 
 let code;
 
-if(service === "minecraft"){
-code = randomChars(5);
+if(service==="minecraft"){
+code=randomChars(5);
 }
-else if(service === "crunchyroll"){
-code = randomChars(6);
+else if(service==="crunchyroll"){
+code=randomChars(6);
 }
-else if(service === "steam"){
-code = randomDigits(3);
+else if(service==="steam"){
+code=randomDigits(3);
 }
 else{
-code = randomChars(6);
+code=randomChars(6);
 }
 
-generatedCodes.set(code, service);
+generatedCodes.set(code,service);
 
-try {
+const embed = new EmbedBuilder()
+.setColor("#7b2cbf")
+.setTitle(`🎁 Incredible Gen ${service}`)
+.setDescription(`
+1️⃣ Create a redeem ticket
+2️⃣ Type .redeem ${code}
 
-await message.author.send(`
-🎟 Generated Code
+Your Code: **${code}**
+`)
+.setImage("https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif");
 
-Service: ${service}
+try{
 
-Redeem using:
-.redeem ${code}
-`);
-
+await message.author.send({embeds:[embed]});
 message.reply("✅ Code sent to your DM");
 
-} catch {
+}catch{
 
-message.reply("❌ Your DMs are closed");
-
-}
+message.reply("❌ Enable DMs");
 
 }
 
-
+}
 
 /* ================= REDEEM ================= */
 
@@ -295,20 +280,19 @@ account: account
 });
 
 const embed = new EmbedBuilder()
-.setTitle("🎉 Account Redeemed")
 .setColor("Green")
+.setTitle("SUCCESS ✅")
 .setDescription(`
-Service: **${service}**
+Success ${message.author} I've sent the **${service}** account details.
 
 Account:
 \`${account}\`
-`);
+`)
+.setImage("https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif");
 
 message.channel.send({embeds:[embed]});
 
 }
-
-
 
 /* ================= STAFF STOCK ================= */
 
@@ -346,8 +330,6 @@ const embed = new EmbedBuilder()
 message.channel.send({embeds:[embed]});
 
 }
-
-
 
 /* ================= DASHBOARD ================= */
 
