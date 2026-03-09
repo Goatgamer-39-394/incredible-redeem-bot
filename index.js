@@ -54,7 +54,6 @@ Show help menu
 `);
 
 return message.channel.send({embeds:[embed]});
-
 }
 
 /* ================= STAFF HELP ================= */
@@ -90,7 +89,6 @@ Full generator overview
 `);
 
 return message.channel.send({embeds:[embed]});
-
 }
 
 /* ================= ADD STOCK ================= */
@@ -110,77 +108,6 @@ if (!stock[service]) stock[service] = [];
 stock[service].push(account);
 
 message.reply(`✅ Added to **${service}** stock`);
-
-}
-
-/* ================= REMOVE STOCK ================= */
-
-if (command === "removestock") {
-
-if (!isStaff) return;
-
-const service = args[0];
-const account = args.slice(1).join(" ");
-
-if (!stock[service])
-return message.reply("❌ Service not found");
-
-stock[service] = stock[service].filter(acc => acc !== account);
-
-message.reply("✅ Account removed");
-
-}
-
-/* ================= REMOVE FIRST ================= */
-
-if (command === "removefirst") {
-
-if (!isStaff) return;
-
-const service = args[0];
-
-if (!stock[service] || stock[service].length === 0)
-return message.reply("❌ No stock");
-
-stock[service].shift();
-
-message.reply("✅ First account removed");
-
-}
-
-/* ================= REMOVE LAST ================= */
-
-if (command === "removelast") {
-
-if (!isStaff) return;
-
-const service = args[0];
-
-if (!stock[service] || stock[service].length === 0)
-return message.reply("❌ No stock");
-
-stock[service].pop();
-
-message.reply("✅ Last account removed");
-
-}
-
-/* ================= REMOVE AMOUNT ================= */
-
-if (command === "removeamount") {
-
-if (!isStaff) return;
-
-const service = args[0];
-const amount = parseInt(args[1]);
-
-if (!stock[service])
-return message.reply("❌ Service not found");
-
-stock[service].splice(0, amount);
-
-message.reply(`✅ Removed ${amount} accounts`);
-
 }
 
 /* ================= GEN ================= */
@@ -191,8 +118,10 @@ if (!isStaff) return;
 
 const service = args[0];
 
-if (!stock[service])
-return message.reply("❌ Service not found");
+if (!service)
+return message.reply("❌ Provide a service");
+
+/* code generators */
 
 function randomChars(length){
 const chars="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -228,7 +157,9 @@ code=randomChars(6);
 
 generatedCodes.set(code,service);
 
-const embed = new EmbedBuilder()
+/* DM embed */
+
+const dmEmbed = new EmbedBuilder()
 .setColor("#7b2cbf")
 .setTitle(`🎁 Incredible Gen ${service}`)
 .setDescription(`
@@ -239,10 +170,21 @@ Your Code: **${code}**
 `)
 .setImage("https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif");
 
+/* success embed in server */
+
+const successEmbed = new EmbedBuilder()
+.setColor("Green")
+.setTitle("SUCCESS ✅")
+.setDescription(`
+Success ${message.author} I've sent the **${service}** code to your DMs.
+`)
+.setImage("https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif");
+
 try{
 
-await message.author.send({embeds:[embed]});
-message.reply("✅ Code sent to your DM");
+await message.author.send({embeds:[dmEmbed]});
+
+message.channel.send({embeds:[successEmbed]});
 
 }catch{
 
@@ -281,17 +223,15 @@ account: account
 
 const embed = new EmbedBuilder()
 .setColor("Green")
-.setTitle("SUCCESS ✅")
+.setTitle("🎉 Account Redeemed")
 .setDescription(`
-Success ${message.author} I've sent the **${service}** account details.
+Service: **${service}**
 
 Account:
 \`${account}\`
-`)
-.setImage("https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif");
+`);
 
 message.channel.send({embeds:[embed]});
-
 }
 
 /* ================= STAFF STOCK ================= */
@@ -315,7 +255,6 @@ const embed = new EmbedBuilder()
 .setDescription(list || "No stock");
 
 return message.channel.send({embeds:[embed]});
-
 }
 
 if (!stock[service])
@@ -328,7 +267,6 @@ const embed = new EmbedBuilder()
 .setDescription("```"+accounts+"```");
 
 message.channel.send({embeds:[embed]});
-
 }
 
 /* ================= DASHBOARD ================= */
@@ -356,11 +294,9 @@ text += "\nRedeemed:\n";
 redeemLog[service].forEach(r=>{
 text += `- ${r.user} → ${r.account}\n`;
 });
-
 }
 
 text += "\n---------------------\n";
-
 }
 
 const embed = new EmbedBuilder()
@@ -369,7 +305,6 @@ const embed = new EmbedBuilder()
 .setDescription("```"+text.slice(0,4000)+"```");
 
 message.channel.send({embeds:[embed]});
-
 }
 
 });
