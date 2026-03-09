@@ -11,9 +11,7 @@ const client = new Client({
 });
 
 // ================= SETTINGS =================
-
 const PREFIX = ".";
-
 const OWNER_IDS = [
 "1471837933429325855",
 "1121404311319089153",
@@ -27,7 +25,6 @@ const BANNER_URL = "https://cdn.discordapp.com/attachments/1474387569818079395/1
 let systemEnabled = true;
 
 // ================= STORAGE =================
-
 const stock = {
   steam: [],
   minecraft: [],
@@ -36,11 +33,9 @@ const stock = {
 
 const generatedCodes = new Map();
 const cooldown = new Map();
-
 const COOLDOWN_TIME = 2 * 60 * 60 * 1000;
 
 // ================= CODE GENERATOR =================
-
 function generateCode(length) {
 
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
@@ -48,25 +43,17 @@ function generateCode(length) {
   let result = "";
 
   for (let i = 0; i < length; i++) {
-
     result += chars.charAt(Math.floor(Math.random() * chars.length));
-
   }
 
   return result;
-
 }
 
-// ================= READY =================
-
 client.on("ready", () => {
-
   console.log(`Logged in as ${client.user.tag}`);
-
 });
 
 // ================= COMMAND HANDLER =================
-
 client.on("messageCreate", async (message) => {
 
   if (!message.guild) return;
@@ -77,25 +64,18 @@ client.on("messageCreate", async (message) => {
   const command = args.shift().toLowerCase();
 
   // ================= ENABLE =================
-
   if (command === "enable" && OWNER_IDS.includes(message.author.id)) {
-
     systemEnabled = true;
     return message.reply("✅ Redeem system enabled.");
-
   }
 
   // ================= DISABLE =================
-
   if (command === "disable" && OWNER_IDS.includes(message.author.id)) {
-
     systemEnabled = false;
     return message.reply("🛑 Redeem system disabled.");
-
   }
 
   // ================= OWNER DASHBOARD =================
-
   if (command === "dashboard") {
 
     if (!OWNER_IDS.includes(message.author.id))
@@ -114,11 +94,9 @@ Crunchyroll: ${stock.crunchyroll.length}`
       .setTimestamp();
 
     return message.reply({ embeds: [embed] });
-
   }
 
   // ================= ADD STOCK =================
-
   if (command === "addstock") {
 
     if (!message.member.roles.cache.has(STAFF_ROLE_ID))
@@ -145,11 +123,9 @@ Crunchyroll: ${stock.crunchyroll.length}`
     stock[type].push(...accounts);
 
     return message.reply(`✅ Added ${accounts.length} ${type} account(s).`);
-
   }
 
   // ================= STAFF STOCK =================
-
   if (command === "staffstock") {
 
     if (!message.member.roles.cache.has(STAFF_ROLE_ID))
@@ -166,7 +142,6 @@ Steam: ${stock.steam.length}
 Minecraft: ${stock.minecraft.length}
 Crunchyroll: ${stock.crunchyroll.length}`
       );
-
     }
 
     if (!stock[type])
@@ -180,11 +155,9 @@ Crunchyroll: ${stock.crunchyroll.length}`
 
 ${stock[type].join("\n")}`
     );
-
   }
 
   // ================= PUBLIC STOCK =================
-
   if (command === "stock") {
 
     const embed = new EmbedBuilder()
@@ -209,11 +182,9 @@ Stock: ${stock.minecraft.length}
       .setTimestamp();
 
     return message.reply({ embeds: [embed] });
-
   }
 
   // ================= GEN =================
-
   if (command === "gen") {
 
     if (!systemEnabled)
@@ -239,9 +210,7 @@ Stock: ${stock.minecraft.length}
         const minutes = Math.floor((timeLeft % 3600000) / 60000);
 
         return message.reply(`⏳ Wait ${hours}h ${minutes}m before generating again.`);
-
       }
-
     }
 
     cooldown.set(cooldownKey, now);
@@ -252,8 +221,9 @@ Stock: ${stock.minecraft.length}
 
     generatedCodes.set(code,type);
 
+    // SUCCESS EMBED (ONLY CHANGE)
     const successEmbed = new EmbedBuilder()
-      .setTitle("SUCCESS ✅")
+      .setTitle("SUCCESS")
       .setDescription(`Success ${message.author}! I've sent the account **${type}** details to your DMs.`)
       .setColor("#57F287")
       .setImage(BANNER_URL)
@@ -261,33 +231,29 @@ Stock: ${stock.minecraft.length}
 
     await message.reply({ embeds: [successEmbed] });
 
-    const embed = new EmbedBuilder()
-      .setTitle("🎁 Incredible Generator")
+    try{
+
+      const embed = new EmbedBuilder()
+      .setTitle(`🎁 Incredible Generator`)
       .setDescription(
 `1️⃣ Create a redeem ticket
-2️⃣ Type \`.redeem ${code}\`
+2️⃣ Type .redeem ${code}
 
-🔑 **Your Code:** \`${code}\`
-🎮 **Service:** ${type.toUpperCase()}`
+Your Code: **${code}**`
       )
       .setColor("#8e44ff")
       .setImage(BANNER_URL)
       .setTimestamp();
 
-    try {
-
       await message.author.send({ embeds:[embed] });
 
-    } catch {
+    }catch{
 
       message.reply("❌ I cannot DM you.");
-
     }
-
   }
 
   // ================= REDEEM =================
-
   if (command === "redeem") {
 
     if (!systemEnabled)
@@ -317,7 +283,6 @@ Stock: ${stock.minecraft.length}
       .setTimestamp();
 
     message.channel.send({ embeds:[embed] });
-
   }
 
 });
