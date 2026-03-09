@@ -1,296 +1,213 @@
 const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
+require("dotenv").config();
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ]
+    intents: [
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
+        GatewayIntentBits.DirectMessages
+    ]
 });
 
 const PREFIX = ".";
+const OWNER_ID = "1471837933429325855";
+const ADMIN_ROLE = "1478005454495023104";
 
-const STAFF_ROLE = "1478005454495023104";
+/* ========= STOCK ========= */
 
-const OWNER_IDS = [
-  "1471837933429325855",
-  "1358359831140110426",
-  "1121404311319089153"
-];
+const stock = {
+    netflix: ["user1:pass1","user2:pass2"],
+    spotify: ["user3:pass3"],
+    steam: ["user4:pass4"]
+};
 
-let stock = {};
-let generatedCodes = new Map();
-let redeemLog = {};
+/* ========= CODES ========= */
+
+const codes = {
+    FREE100: { service: "netflix", account: "email:pass" },
+    TEST123: { service: "spotify", account: "email:pass" }
+};
+
+/* ========= BOT READY ========= */
 
 client.once("ready", () => {
-  console.log(`${client.user.tag} is online`);
+    console.log(`Logged in as ${client.user.tag}`);
 });
 
-client.on("messageCreate", async (message) => {
+/* ========= MESSAGE EVENT ========= */
 
-  if (message.author.bot) return;
-  if (!message.content.startsWith(PREFIX)) return;
+client.on("messageCreate", async message => {
 
-  const args = message.content.slice(PREFIX.length).trim().split(/ +/);
-  const command = args.shift().toLowerCase();
+    if (message.author.bot) return;
+    if (!message.content.startsWith(PREFIX)) return;
 
-  const isStaff =
-    message.member?.roles.cache.has(STAFF_ROLE) ||
-    OWNER_IDS.includes(message.author.id);
+    const args = message.content.slice(PREFIX.length).trim().split(/ +/);
+    const cmd = args.shift().toLowerCase();
 
-  /* ================= HELP ================= */
+/* ========= GEN COMMAND ========= */
 
-  if (command === "help") {
+if (cmd === "gen") {
 
-    const embed = new EmbedBuilder()
-      .setTitle("📜 Help Menu")
-      .setColor("Blue")
-      .setDescription(`
-.redeem <code>
-Redeem a generated code
+const services = Object.keys(stock);
 
-.help
-Show help menu
-`);
+if (!services.length) {
+    return message.reply("No services available.");
+}
 
-    return message.channel.send({ embeds: [embed] });
-  }
+const service = services[Math.floor(Math.random() * services.length)];
+const accounts = stock[service];
 
-  /* ================= STAFF HELP ================= */
+if (!accounts.length) {
+    return message.reply("Stock empty.");
+}
 
-  if (command === "staffhelp") {
+const account = accounts[Math.floor(Math.random() * accounts.length)];
 
-    if (!isStaff) return;
+try {
 
-    const embed = new EmbedBuilder()
-      .setTitle("🛠 Staff Commands")
-      .setColor("Orange")
-      .setDescription(`
-.gen <service>
+await message.author.send(
+`🎉 **Your Generated Account**
 
-.addstock <service> <account>
-
-.staffstock
-Show stock counts
-
-.staffstock <service>
-Show accounts
-
-.dashboard
-Full generator overview
-`);
-
-    return message.channel.send({ embeds: [embed] });
-  }
-
-  /* ================= ADD STOCK ================= */
-
-  if (command === "addstock") {
-
-    if (!isStaff) return message.reply("❌ No permission");
-
-    const service = args[0];
-    const account = args.slice(1).join(" ");
-
-    if (!service || !account)
-      return message.reply("Usage: .addstock <service> <account>");
-
-    if (!stock[service]) stock[service] = [];
-
-    stock[service].push(account);
-
-    message.reply(`✅ Added to **${service}** stock`);
-  }
-
-  /* ================= GEN ================= */
-
-  if (command === "gen") {
-
-    if (!isStaff) return;
-
-    const service = args[0];
-
-    if (!service)
-      return message.reply("❌ Provide a service");
-
-    function randomChars(length) {
-      const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-      let result = "";
-      for (let i = 0; i < length; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return result;
-    }
-
-    function randomDigits(length) {
-      let result = "";
-      for (let i = 0; i < length; i++) {
-        result += Math.floor(Math.random() * 10);
-      }
-      return result;
-    }
-
-    let code;
-
-    if (service === "minecraft") {
-      code = randomChars(5);
-    } else if (service === "crunchyroll") {
-      code = randomChars(6);
-    } else if (service === "steam") {
-      code = randomDigits(3);
-    } else {
-      code = randomChars(6);
-    }
-
-    generatedCodes.set(code, service);
-
-    const dmEmbed = new EmbedBuilder()
-      .setColor("#7b2cbf")
-      .setTitle(`🎁 Incredible Gen ${service}`)
-      .setDescription(`
-1️⃣ Create a redeem ticket
-2️⃣ Type .redeem ${code}
-
-Your Code: **${code}**
-`)
-      .setImage("https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif");
-
-    const successEmbed = new EmbedBuilder()
-      .setColor("Green")
-      .setTitle("SUCCESS ✅")
-      .setDescription(`
-Success ${message.author} I've sent the **${service}** code to your DMs.
-`)
-      .setImage("https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif");
-
-    try {
-
-      await message.author.send({ embeds: [dmEmbed] });
-
-      message.channel.send({ embeds: [successEmbed] });
-
-    } catch {
-
-      message.reply("❌ Enable DMs");
-
-    }
-
-  }
-
-  /* ================= REDEEM ================= */
-
-  if (command === "redeem") {
-
-    const code = args[0];
-
-    if (!generatedCodes.has(code))
-      return message.reply("❌ Invalid code");
-
-    const service = generatedCodes.get(code);
-
-    if (!stock[service] || stock[service].length === 0)
-      return message.reply("❌ Out of stock");
-
-    const randomIndex = Math.floor(Math.random() * stock[service].length);
-    const account = stock[service][randomIndex];
-
-    generatedCodes.delete(code);
-
-    if (!redeemLog[service]) redeemLog[service] = [];
-
-    redeemLog[service].push({
-      user: message.author.username,
-      account: account
-    });
-
-    const embed = new EmbedBuilder()
-      .setColor("Green")
-      .setTitle("🎉 Account Redeemed")
-      .setDescription(`
 Service: **${service}**
 
 Account:
-\`${account}\`
-`);
+\`${account}\``
+);
 
-    message.channel.send({ embeds: [embed] });
-  }
+const embed = new EmbedBuilder()
+.setTitle("Account Generated")
+.setDescription(`📩 **Check your DM for the account!**`)
+.setColor("Green");
 
-  /* ================= STAFF STOCK ================= */
+message.channel.send({ embeds: [embed] });
 
-  if (command === "staffstock") {
+} catch {
 
-    if (!isStaff) return;
+message.reply("I couldn't DM you. Enable DMs.");
 
-    const service = args[0];
+}
 
-    if (!service) {
+}
 
-      let list = "";
+/* ========= REDEEM COMMAND ========= */
 
-      for (const s in stock) {
-        list += `${s} : ${stock[s].length} accounts\n`;
-      }
+if (cmd === "redeem") {
 
-      const embed = new EmbedBuilder()
-        .setTitle("📦 Stock Overview")
-        .setDescription(list || "No stock");
+const code = args[0];
 
-      return message.channel.send({ embeds: [embed] });
-    }
+if (!code) {
+    return message.reply("Usage: `.redeem CODE`");
+}
 
-    if (!stock[service])
-      return message.reply("❌ Service not found");
+if (!codes[code]) {
+    return message.reply("❌ Invalid or fake code.");
+}
 
-    const accounts = stock[service].join("\n");
+const service = codes[code].service;
+const account = codes[code].account;
 
-    const embed = new EmbedBuilder()
-      .setTitle(`📦 ${service} Stock`)
-      .setDescription("```" + accounts + "```");
+delete codes[code];
 
-    message.channel.send({ embeds: [embed] });
-  }
+try {
 
-  /* ================= DASHBOARD ================= */
+await message.author.send(
+`✅ **Code Redeemed**
 
-  if (command === "dashboard") {
+Service: **${service}**
 
-    if (!isStaff) return;
+Account:
+\`${account}\``
+);
 
-    let text = "";
+message.reply("📩 Check your DM for the account.");
 
-    for (const service in stock) {
+} catch {
 
-      text += `\n📦 ${service} (${stock[service].length})\n`;
+message.reply("Enable DMs first.");
 
-      text += "Accounts:\n";
+}
 
-      stock[service].forEach(acc => {
-        text += `- ${acc}\n`;
-      });
+}
 
-      if (redeemLog[service]) {
+/* ========= ADDCODE (ADMIN) ========= */
 
-        text += "\nRedeemed:\n";
+if (cmd === "addcode") {
 
-        redeemLog[service].forEach(r => {
-          text += `- ${r.user} → ${r.account}\n`;
-        });
+if (message.author.id !== OWNER_ID &&
+!message.member.roles.cache.has(ADMIN_ROLE)) return;
 
-      }
+const code = args[0];
+const service = args[1];
+const account = args.slice(2).join(" ");
 
-      text += "\n---------------------\n";
+if (!code || !service || !account) {
+return message.reply("Usage: `.addcode CODE service email:pass`");
+}
 
-    }
+codes[code] = { service, account };
 
-    const embed = new EmbedBuilder()
-      .setTitle("📊 Generator Dashboard")
-      .setColor("Purple")
-      .setDescription("```" + text.slice(0, 4000) + "```");
+message.reply("✅ Code added.");
 
-    message.channel.send({ embeds: [embed] });
-  }
+}
+
+/* ========= REMOVECODE ========= */
+
+if (cmd === "removecode") {
+
+if (message.author.id !== OWNER_ID &&
+!message.member.roles.cache.has(ADMIN_ROLE)) return;
+
+const code = args[0];
+
+if (!codes[code]) {
+return message.reply("Code not found.");
+}
+
+delete codes[code];
+
+message.reply("🗑 Code removed.");
+
+}
+
+/* ========= STOCK ADD ========= */
+
+if (cmd === "addstock") {
+
+if (message.author.id !== OWNER_ID &&
+!message.member.roles.cache.has(ADMIN_ROLE)) return;
+
+const service = args[0];
+const account = args.slice(1).join(" ");
+
+if (!service || !account) {
+return message.reply("Usage: `.addstock service email:pass`");
+}
+
+if (!stock[service]) stock[service] = [];
+
+stock[service].push(account);
+
+message.reply("📦 Stock added.");
+
+}
+
+/* ========= STOCK VIEW ========= */
+
+if (cmd === "stock") {
+
+let msg = "**Stock List**\n";
+
+for (const s in stock) {
+msg += `${s} : ${stock[s].length}\n`;
+}
+
+message.reply(msg);
+
+}
 
 });
+
+/* ========= LOGIN ========= */
 
 client.login(process.env.TOKEN);
