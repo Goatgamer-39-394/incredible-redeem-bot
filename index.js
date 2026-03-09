@@ -39,11 +39,9 @@ const COOLDOWN_TIME = 2 * 60 * 60 * 1000;
 function generateCode(length) {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
   let result = "";
-
   for (let i = 0; i < length; i++) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
-
   return result;
 }
 
@@ -76,7 +74,7 @@ client.on("messageCreate", async (message) => {
     return message.reply("🛑 Redeem system disabled.");
   }
 
-  // ================= OWNER DASHBOARD =================
+  // ================= DASHBOARD =================
   if (command === "dashboard") {
 
     if (!isOwner)
@@ -92,8 +90,7 @@ Minecraft: ${stock.minecraft.length}
 Crunchyroll: ${stock.crunchyroll.length}`
       )
       .setColor("#ff9900")
-      .setFooter({ text: "Incredible Services" })
-      .setTimestamp();
+      .setFooter({ text: "Incredible Services" });
 
     return message.reply({ embeds: [embed] });
   }
@@ -102,24 +99,19 @@ Crunchyroll: ${stock.crunchyroll.length}`
   if (command === "addstock") {
 
     if (!isStaff)
-      return message.reply(`❌ Staff only. Required Role ID: ${STAFF_ROLE_ID}`);
+      return message.reply(`❌ Staff only. Role ID: ${STAFF_ROLE_ID}`);
 
     const type = args[0]?.toLowerCase();
 
     if (!["steam","minecraft","crunchyroll"].includes(type))
-      return message.reply("❌ Usage:\n`.addstock steam email:pass`\n`.addstock steam 3` then paste accounts");
-
-    // MULTIPLE MODE
-    if (!args[1]) {
-      return message.reply("❌ Provide account or amount.");
-    }
+      return message.reply("Usage:\n.addstock steam email:pass\n.addstock steam 3");
 
     // SINGLE ACCOUNT
-    if (args[1].includes(":")) {
+    if (args[1]?.includes(":")) {
 
       stock[type].push(args[1]);
 
-      return message.reply(`✅ Added **1 ${type}** account.`);
+      return message.reply(`✅ Added 1 ${type} account.`);
     }
 
     // MULTIPLE ACCOUNTS
@@ -134,11 +126,11 @@ Crunchyroll: ${stock.crunchyroll.length}`
         .filter(a => a.includes(":"));
 
       if (accounts.length === 0)
-        return message.reply("❌ Paste accounts on new lines.");
+        return message.reply("❌ Paste accounts under the command.");
 
       stock[type].push(...accounts);
 
-      return message.reply(`✅ Added **${accounts.length} ${type}** accounts.`);
+      return message.reply(`✅ Added ${accounts.length} ${type} accounts.`);
     }
 
   }
@@ -147,31 +139,14 @@ Crunchyroll: ${stock.crunchyroll.length}`
   if (command === "staffstock") {
 
     if (!isStaff)
-      return message.reply(`❌ Staff only. Role ID: ${STAFF_ROLE_ID}`);
+      return message.reply("❌ Staff only.");
 
-    const type = args[0]?.toLowerCase();
-
-    if (!type) {
-
-      return message.reply(
+    return message.reply(
 `📦 Staff Stock
 
 Steam: ${stock.steam.length}
 Minecraft: ${stock.minecraft.length}
 Crunchyroll: ${stock.crunchyroll.length}`
-      );
-    }
-
-    if (!stock[type])
-      return message.reply("Usage: .staffstock steam/minecraft/crunchyroll");
-
-    if (stock[type].length === 0)
-      return message.reply(`❌ No ${type} accounts.`);
-
-    return message.reply(
-`📦 ${type.toUpperCase()} Accounts
-
-${stock[type].join("\n")}`
     );
   }
 
@@ -197,8 +172,7 @@ Stock: ${stock.minecraft.length}
       )
       .setColor("#8e44ff")
       .setImage(BANNER_URL)
-      .setFooter({ text: "Incredible Services" })
-      .setTimestamp();
+      .setFooter({ text: "Incredible Services" });
 
     return message.reply({ embeds: [embed] });
   }
@@ -234,47 +208,59 @@ Stock: ${stock.minecraft.length}
 
     cooldown.set(cooldownKey, now);
 
-    const length = type === "steam" ? 3 : type === "minecraft" ? 5 : 6;
+    // LOADING EMBED
+    const loading = new EmbedBuilder()
+      .setTitle("⏳ Generating Account...")
+      .setDescription("Please wait while we prepare your account.")
+      .setColor("#f1c40f")
+      .setFooter({ text: "Incredible Services" });
 
-    const code = generateCode(length);
+    const loadingMsg = await message.reply({ embeds:[loading] });
 
-    generatedCodes.set(code,type);
+    // small delay
+    setTimeout(async () => {
 
-    const successEmbed = new EmbedBuilder()
-      .setTitle("SUCCESS ✅")
-      .setDescription(`Success ${message.author}! I've sent the account **${type}** details to your DMs.`)
-      .setColor("#57F287")
-      .setImage(BANNER_URL)
-      .setFooter({ text: "Incredible Services" })
-      .setTimestamp();
+      const length = type === "steam" ? 3 : type === "minecraft" ? 5 : 6;
 
-    await message.reply({ embeds: [successEmbed] });
+      const code = generateCode(length);
 
-    try{
+      generatedCodes.set(code,type);
 
-      const embed = new EmbedBuilder()
-      .setTitle(`🎁 Incredible Generator`)
-      .setDescription(
-`Thanks for using **Incredible Services**!
+      const successEmbed = new EmbedBuilder()
+        .setTitle("SUCCESS ✅")
+        .setDescription(`Success ${message.author}! I've sent the account **${type}** details to your DMs.`)
+        .setColor("#57F287")
+        .setImage(BANNER_URL)
+        .setFooter({ text: "Incredible Services" });
+
+      await loadingMsg.edit({ embeds:[successEmbed] });
+
+      try{
+
+        const embed = new EmbedBuilder()
+        .setTitle(`🎁 Incredible Generator`)
+        .setDescription(
+`Follow these steps:
 
 1️⃣ Create a redeem ticket  
 2️⃣ Type \`.redeem ${code}\`
 
 Your Code: **${code}**
 
-If it doesn't work ping staff for replacement.`
-      )
-      .setColor("#8e44ff")
-      .setImage(BANNER_URL)
-      .setFooter({ text: "Incredible Services" })
-      .setTimestamp();
+Thanks for using our service! If it doesn't work ping staff for assistance or replacement.`
+        )
+        .setColor("#8e44ff")
+        .setImage(BANNER_URL)
+        .setFooter({ text: "Incredible Services" });
 
-      await message.author.send({ embeds:[embed] });
+        await message.author.send({ embeds:[embed] });
 
-    }catch{
+      }catch{
 
-      message.reply("❌ I cannot DM you.");
-    }
+        message.reply("❌ I cannot DM you.");
+      }
+
+    },2000);
   }
 
   // ================= REDEEM =================
@@ -296,16 +282,25 @@ If it doesn't work ping staff for replacement.`
     if (stock[type].length === 0)
       return message.reply("❌ Out of stock.");
 
-    const account = stock[type].shift();
+    // RANDOM ACCOUNT (NOT REMOVED)
+    const randomIndex = Math.floor(Math.random() * stock[type].length);
+    const account = stock[type][randomIndex];
 
     generatedCodes.delete(code);
 
     const embed = new EmbedBuilder()
       .setTitle("🎉 Account Redeemed")
-      .setDescription(`\`${account}\``)
+      .setDescription(`
+**Your ${type} account:**
+
+\`${account}\`
+
+Thanks for using our service!  
+If it doesn't work **ping staff for assistance or replacement.**
+`)
       .setColor("Green")
-      .setFooter({ text: "Incredible Services" })
-      .setTimestamp();
+      .setImage(BANNER_URL)
+      .setFooter({ text: "Incredible Services" });
 
     message.channel.send({ embeds:[embed] });
   }
