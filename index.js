@@ -176,8 +176,7 @@ const successEmbed = new EmbedBuilder()
 .setColor("Green")
 .setTitle("SUCCESS ✅")
 .setDescription(`
-Success ${message.author} I've sent the **${service}** code to your DMs.
-`)
+Success ${message.author} I've sent the account steam details to your DMs.
 .setImage("https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif");
 
 try{
