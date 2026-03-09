@@ -19,7 +19,8 @@ const OWNER_IDS = [
 "1358359831140110426"
 ];
 
-const STAFF_ROLE_ID = "1477887155106746380";
+// UPDATED STAFF ROLE
+const STAFF_ROLE_ID = "1465398987094888510";
 
 const BANNER_URL = "https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif";
 
@@ -40,6 +41,7 @@ const COOLDOWN_TIME = 2 * 60 * 60 * 1000;
 function generateCode(length) {
 
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
   let result = "";
 
   for (let i = 0; i < length; i++) {
@@ -153,7 +155,6 @@ Members: ${message.guild.memberCount}`,
 
     const lines = message.content.split("\n").slice(1);
 
-    // SINGLE ACCOUNT
     if (args[1] && args[1].includes(":")) {
 
       stock[type].push(args[1]);
@@ -161,7 +162,6 @@ Members: ${message.guild.memberCount}`,
       return message.reply(`✅ Added 1 ${type} account.`);
     }
 
-    // MULTIPLE ACCOUNT
     if (lines.length > 0) {
 
       const accounts = lines
@@ -186,55 +186,6 @@ Multiple:
 email:pass
 email:pass
 email:pass`);
-  }
-
-  // ================= REMOVE STOCK =================
-  if (command === "removestock") {
-
-    if (
-      !message.member.roles.cache.has(STAFF_ROLE_ID) &&
-      !OWNER_IDS.includes(message.author.id)
-    )
-      return message.reply("❌ Staff or Owner only.");
-
-    const type = args[0]?.toLowerCase();
-    const amount = parseInt(args[1]);
-
-    if (!["steam","minecraft","crunchyroll"].includes(type))
-      return message.reply("❌ Usage: .removestock steam/minecraft/crunchyroll amount");
-
-    if (!amount)
-      return message.reply("❌ Provide amount.");
-
-    if (stock[type].length === 0)
-      return message.reply("❌ No stock.");
-
-    const removed = stock[type].splice(0, amount);
-
-    return message.reply(`🗑 Removed ${removed.length} ${type} accounts.`);
-  }
-
-  // ================= RESET COOLDOWN =================
-  if (command === "resetcooldown") {
-
-    if (!OWNER_IDS.includes(message.author.id))
-      return message.reply("❌ Owner only.");
-
-    const user = message.mentions.users.first() || client.users.cache.get(args[0]);
-
-    if (!user)
-      return message.reply("❌ Mention user or provide ID.");
-
-    let removed = 0;
-
-    for (const key of cooldown.keys()) {
-      if (key.startsWith(user.id)) {
-        cooldown.delete(key);
-        removed++;
-      }
-    }
-
-    return message.reply(`🔄 Cooldown reset for ${user.tag} (${removed} removed)`);
   }
 
   // ================= STAFF STOCK =================
@@ -314,8 +265,8 @@ Use \`.gen steam | minecraft | crunchyroll\``
     generatedCodes.set(code,type);
 
     const successEmbed = new EmbedBuilder()
-      .setTitle("SUCCESS")
-      .setDescription(`Success ${message.author}! Check your DMs.`)
+      .setTitle("SUCCESS ✅")
+      .setDescription(`Success ${message.author}! I've sent the account **${type}** details to your DMs.`)
       .setColor("#57F287")
       .setImage(BANNER_URL)
       .setTimestamp();
