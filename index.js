@@ -1,218 +1,347 @@
 const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 
 const client = new Client({
-  intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent
-  ]
+intents: [
+GatewayIntentBits.Guilds,
+GatewayIntentBits.GuildMessages,
+GatewayIntentBits.MessageContent
+]
 });
 
 const PREFIX = ".";
 
 const STAFF_ROLE = "1478005454495023104";
-const OWNER_ID = "1471837933429325855";
+
+const OWNER_IDS = [
+"1471837933429325855",
+"1358359831140110426",
+"1121404311319089153"
+];
 
 let stock = {};
 let generatedCodes = new Map();
-let systemEnabled = true;
+let redeemLog = {};
 
 client.once("ready", () => {
-  console.log(`${client.user.tag} is online`);
+console.log(`${client.user.tag} is online`);
 });
 
 client.on("messageCreate", async (message) => {
 
-  if (message.author.bot) return;
-  if (!message.content.startsWith(PREFIX)) return;
+if (message.author.bot) return;
+if (!message.content.startsWith(PREFIX)) return;
 
-  const args = message.content.slice(PREFIX.length).trim().split(/ +/);
-  const command = args.shift().toLowerCase();
+const args = message.content.slice(PREFIX.length).trim().split(/ +/);
+const command = args.shift().toLowerCase();
 
-  const isStaff = message.member.roles.cache.has(STAFF_ROLE) || message.author.id === OWNER_ID;
+const isStaff =
+message.member.roles.cache.has(STAFF_ROLE) ||
+OWNER_IDS.includes(message.author.id);
 
-  // =========================
-  // ADD STOCK
-  // =========================
-  if (command === "addstock") {
 
-    if (!isStaff) return message.reply("❌ No permission.");
 
-    const service = args[0];
-    const account = args.slice(1).join(" ");
+/* ================= HELP ================= */
 
-    if (!service || !account)
-      return message.reply("Usage: .addstock <service> <account>");
+if (command === "help") {
 
-    if (!stock[service]) stock[service] = [];
+const embed = new EmbedBuilder()
+.setTitle("📜 Help Menu")
+.setColor("Blue")
+.setDescription(`
+.redeem <code>
+Redeem a generated code
 
-    stock[service].push(account);
+.help
+Show help menu
+`);
 
-    message.reply(`✅ Added account to **${service}** stock`);
-  }
+return message.channel.send({embeds:[embed]});
 
-  // =========================
-  // REMOVE SPECIFIC ACCOUNT
-  // =========================
-  if (command === "removestock") {
+}
 
-    if (!isStaff) return message.reply("❌ No permission.");
 
-    const service = args[0];
-    const account = args.slice(1).join(" ");
 
-    if (!stock[service]) return message.reply("❌ Service not found.");
+/* ================= STAFF HELP ================= */
 
-    stock[service] = stock[service].filter(acc => acc !== account);
+if (command === "staffhelp") {
 
-    message.reply(`✅ Account removed from **${service}**`);
-  }
+if (!isStaff) return;
 
-  // =========================
-  // REMOVE FIRST
-  // =========================
-  if (command === "removefirst") {
+const embed = new EmbedBuilder()
+.setTitle("🛠 Staff Commands")
+.setColor("Orange")
+.setDescription(`
+.gencode <service>
 
-    if (!isStaff) return message.reply("❌ No permission.");
+.addstock <service> <account>
 
-    const service = args[0];
+.removestock <service> <account>
 
-    if (!stock[service] || stock[service].length === 0)
-      return message.reply("❌ No stock.");
+.removefirst <service>
 
-    stock[service].shift();
+.removelast <service>
 
-    message.reply(`✅ First account removed from **${service}**`);
-  }
+.removeamount <service> <amount>
 
-  // =========================
-  // REMOVE LAST
-  // =========================
-  if (command === "removelast") {
+.staffstock
+Show all stock counts
 
-    if (!isStaff) return message.reply("❌ No permission.");
+.staffstock <service>
+Show accounts
 
-    const service = args[0];
+.dashboard
+Full generator overview
+`);
 
-    if (!stock[service] || stock[service].length === 0)
-      return message.reply("❌ No stock.");
+return message.channel.send({embeds:[embed]});
 
-    stock[service].pop();
+}
 
-    message.reply(`✅ Last account removed from **${service}**`);
-  }
 
-  // =========================
-  // REMOVE AMOUNT
-  // =========================
-  if (command === "removeamount") {
 
-    if (!isStaff) return message.reply("❌ No permission.");
+/* ================= ADD STOCK ================= */
 
-    const service = args[0];
-    const amount = parseInt(args[1]);
+if (command === "addstock") {
 
-    if (!stock[service]) return message.reply("❌ Service not found.");
+if (!isStaff) return message.reply("❌ No permission");
 
-    stock[service].splice(0, amount);
+const service = args[0];
+const account = args.slice(1).join(" ");
 
-    message.reply(`✅ Removed ${amount} accounts from **${service}**`);
-  }
+if (!service || !account)
+return message.reply("Usage: .addstock <service> <account>");
 
-  // =========================
-  // GENERATE CODE
-  // =========================
-  if (command === "gencode") {
+if (!stock[service]) stock[service] = [];
 
-    if (!isStaff) return message.reply("❌ No permission.");
+stock[service].push(account);
 
-    const service = args[0];
+message.reply(`✅ Added to **${service}** stock`);
 
-    if (!stock[service])
-      return message.reply("❌ Service not found.");
+}
 
-    const code = Math.random().toString(36).substring(2, 10).toUpperCase();
 
-    generatedCodes.set(code, service);
 
-    message.reply(`🎟 Code generated: **${code}** for **${service}**`);
-  }
+/* ================= REMOVE STOCK ================= */
 
-  // =========================
-  // REDEEM
-  // =========================
-  if (command === "redeem") {
+if (command === "removestock") {
 
-    const code = args[0];
+if (!isStaff) return;
 
-    if (!systemEnabled)
-      return message.reply("🛑 System disabled.");
+const service = args[0];
+const account = args.slice(1).join(" ");
 
-    if (!generatedCodes.has(code))
-      return message.reply("❌ Invalid code.");
+if (!stock[service])
+return message.reply("❌ Service not found");
 
-    const service = generatedCodes.get(code);
+stock[service] = stock[service].filter(acc => acc !== account);
 
-    if (!stock[service] || stock[service].length === 0)
-      return message.reply("❌ Out of stock.");
+message.reply("✅ Account removed");
 
-    const randomIndex = Math.floor(Math.random() * stock[service].length);
-    const account = stock[service][randomIndex];
+}
 
-    generatedCodes.delete(code);
 
-    const embed = new EmbedBuilder()
-      .setTitle("🎉 Account Redeemed")
-      .setDescription(`Service: **${service}**\nAccount: \`${account}\``)
-      .setColor("Green");
 
-    message.channel.send({ embeds: [embed] });
-  }
+/* ================= REMOVE FIRST ================= */
 
-  // =========================
-  // STAFF STOCK OVERVIEW
-  // =========================
-  if (command === "staffstock") {
+if (command === "removefirst") {
 
-    if (!isStaff) return message.reply("❌ No permission.");
+if (!isStaff) return;
 
-    const service = args[0];
+const service = args[0];
 
-    if (!service) {
+if (!stock[service] || stock[service].length === 0)
+return message.reply("❌ No stock");
 
-      if (Object.keys(stock).length === 0)
-        return message.reply("❌ No stock.");
+stock[service].shift();
 
-      let list = "";
+message.reply("✅ First account removed");
 
-      for (const s in stock) {
-        list += `**${s}** : ${stock[s].length} accounts\n`;
-      }
+}
 
-      const embed = new EmbedBuilder()
-        .setTitle("📦 Staff Stock Overview")
-        .setDescription(list)
-        .setColor("Blue");
 
-      return message.channel.send({ embeds: [embed] });
-    }
 
-    if (!stock[service])
-      return message.reply("❌ Service not found.");
+/* ================= REMOVE LAST ================= */
 
-    if (stock[service].length === 0)
-      return message.reply("❌ No accounts.");
+if (command === "removelast") {
 
-    const accounts = stock[service].join("\n");
+if (!isStaff) return;
 
-    const embed = new EmbedBuilder()
-      .setTitle(`📦 ${service} Stock`)
-      .setDescription("```" + accounts + "```")
-      .setColor("Green");
+const service = args[0];
 
-    message.channel.send({ embeds: [embed] });
+if (!stock[service] || stock[service].length === 0)
+return message.reply("❌ No stock");
 
-  }
+stock[service].pop();
+
+message.reply("✅ Last account removed");
+
+}
+
+
+
+/* ================= REMOVE AMOUNT ================= */
+
+if (command === "removeamount") {
+
+if (!isStaff) return;
+
+const service = args[0];
+const amount = parseInt(args[1]);
+
+if (!stock[service])
+return message.reply("❌ Service not found");
+
+stock[service].splice(0, amount);
+
+message.reply(`✅ Removed ${amount} accounts`);
+
+}
+
+
+
+/* ================= GEN CODE ================= */
+
+if (command === "gencode") {
+
+if (!isStaff) return;
+
+const service = args[0];
+
+if (!stock[service])
+return message.reply("❌ Service not found");
+
+const code = Math.random().toString(36).substring(2,10).toUpperCase();
+
+generatedCodes.set(code, service);
+
+message.reply(`🎟 Code generated: **${code}**`);
+
+}
+
+
+
+/* ================= REDEEM ================= */
+
+if (command === "redeem") {
+
+const code = args[0];
+
+if (!generatedCodes.has(code))
+return message.reply("❌ Invalid code");
+
+const service = generatedCodes.get(code);
+
+if (!stock[service] || stock[service].length === 0)
+return message.reply("❌ Out of stock");
+
+const randomIndex = Math.floor(Math.random() * stock[service].length);
+
+const account = stock[service][randomIndex];
+
+generatedCodes.delete(code);
+
+if (!redeemLog[service]) redeemLog[service] = [];
+
+redeemLog[service].push({
+user: message.author.username,
+account: account
+});
+
+const embed = new EmbedBuilder()
+.setTitle("🎉 Account Redeemed")
+.setColor("Green")
+.setDescription(`
+Service: **${service}**
+
+Account:
+\`${account}\`
+`);
+
+message.channel.send({embeds:[embed]});
+
+}
+
+
+
+/* ================= STAFF STOCK ================= */
+
+if (command === "staffstock") {
+
+if (!isStaff) return;
+
+const service = args[0];
+
+if (!service) {
+
+let list = "";
+
+for (const s in stock) {
+list += `${s} : ${stock[s].length} accounts\n`;
+}
+
+const embed = new EmbedBuilder()
+.setTitle("📦 Stock Overview")
+.setDescription(list || "No stock");
+
+return message.channel.send({embeds:[embed]});
+
+}
+
+if (!stock[service])
+return message.reply("❌ Service not found");
+
+const accounts = stock[service].join("\n");
+
+const embed = new EmbedBuilder()
+.setTitle(`📦 ${service} Stock`)
+.setDescription("```"+accounts+"```");
+
+message.channel.send({embeds:[embed]});
+
+}
+
+
+
+/* ================= DASHBOARD ================= */
+
+if (command === "dashboard") {
+
+if (!isStaff) return;
+
+let text = "";
+
+for (const service in stock) {
+
+text += `\n📦 ${service} (${stock[service].length})\n`;
+
+text += "Accounts:\n";
+
+stock[service].forEach(acc=>{
+text += `- ${acc}\n`;
+});
+
+if (redeemLog[service]) {
+
+text += "\nRedeemed:\n";
+
+redeemLog[service].forEach(r=>{
+text += `- ${r.user} → ${r.account}\n`;
+});
+
+}
+
+text += "\n---------------------\n";
+
+}
+
+const embed = new EmbedBuilder()
+.setTitle("📊 Generator Dashboard")
+.setColor("Purple")
+.setDescription("```"+text.slice(0,4000)+"```");
+
+message.channel.send({embeds:[embed]});
+
+}
 
 });
 
