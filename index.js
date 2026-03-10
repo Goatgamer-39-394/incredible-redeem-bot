@@ -193,9 +193,113 @@ client.on("messageCreate", async (message)=>{
     return message.reply({embeds:[embed]});
   }
 
-  // ================= GENERATE & REDEEM =================
-  // Insert your flashy loading .gen/.redeem code here from previous version
-  // including loading bars, footer GIFs, and cooldown checks
+  // ================= GENERATE =================
+  if(command==="gen"){
+    if(!systemEnabled) return message.reply("🛑 System disabled.");
+    const type = args[0]?.toLowerCase();
+    if(!["steam","minecraft","crunchyroll"].includes(type))
+      return message.reply("❌ Usage: .gen steam | minecraft | crunchyroll");
+    const cooldownKey = message.author.id;
+    const now = Date.now();
+    if(cooldown.has(cooldownKey)){
+      const expiration = cooldown.get(cooldownKey)+COOLDOWN_TIME;
+      if(now < expiration){
+        const timeLeft = expiration-now;
+        const h = Math.floor(timeLeft/3600000);
+        const m = Math.floor((timeLeft%3600000)/60000);
+        return message.reply(`⏳ Wait ${h}h ${m}m.`);
+      }
+    }
+    cooldown.set(cooldownKey, now);
+    const codeLength = type==="steam"?3:type==="minecraft"?5:6;
+    const code = generateCode(codeLength);
+    generatedCodes.set(code,type);
+    totalGenerated++;
+
+    // Visual Loading Screen
+    const loading = await message.reply("⚡ Generating...");
+    const steps = [
+      "🟩⬜⬜⬜⬜⬜⬜⬜⬜⬜ 10%",
+      "🟩🟩⬜⬜⬜⬜⬜⬜⬜⬜ 20%",
+      "🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜ 30%",
+      "🟩🟩🟩🟩⬜⬜⬜⬜⬜⬜ 40%",
+      "🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜ 50%",
+      "🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜ 60%",
+      "🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜ 70%",
+      "🟩🟩🟩🟩🟩🟩🟩🟩⬜⬜ 80%",
+      "🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜ 90%",
+      "🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩 100%"
+    ];
+    for(const step of steps){
+      await loading.edit(`⚡ Generating...\n${step}`);
+      await new Promise(r=>setTimeout(r,150)); // fast 150ms
+    }
+
+    const embed = new EmbedBuilder()
+      .setTitle("SUCCESS ✅")
+      .setDescription(`Success ${message.author}! I've sent the **${type} code** to your DMs.`)
+      .setColor("#57F287")
+      .setImage(BANNER_URL)
+      .setFooter({ text:"Thank you for using! Come again 😉", iconURL:FOOTER_GIF });
+
+    await message.reply({ embeds:[embed] });
+
+    // DM the code
+    try{
+      const dmEmbed = new EmbedBuilder()
+        .setTitle("🎁 Incredible Generator")
+        .setDescription(`Follow these steps:\n1️⃣ Create a redeem ticket\n2️⃣ Type \`.redeem ${code}\`\n\nYour Code: **${code}**`)
+        .setColor("#8e44ff")
+        .setImage(BANNER_URL);
+      await message.author.send({ embeds:[dmEmbed] });
+    }catch{
+      message.reply("❌ I cannot DM you.");
+    }
+  }
+
+  // ================= REDEEM =================
+  if(command==="redeem"){
+    if(!systemEnabled) return message.reply("🛑 System disabled.");
+    const code = args[0];
+    if(!code) return message.reply("❌ Provide a code.");
+    if(!generatedCodes.has(code)) return message.reply("❌ Invalid or expired code.");
+    const type = generatedCodes.get(code);
+    if(stock[type].length===0) return message.reply("❌ Out of stock.");
+
+    // Visual Redeem Loading
+    const loading = await message.reply("⚡ Redeeming...");
+    const steps = [
+      "🟩⬜⬜⬜⬜⬜⬜⬜⬜⬜ 10%",
+      "🟩🟩⬜⬜⬜⬜⬜⬜⬜⬜ 20%",
+      "🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜ 30%",
+      "🟩🟩🟩🟩⬜⬜⬜⬜⬜⬜ 40%",
+      "🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜ 50%",
+      "🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜ 60%",
+      "🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜ 70%",
+      "🟩🟩🟩🟩🟩🟩🟩🟩⬜⬜ 80%",
+      "🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜ 90%",
+      "🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩 100%"
+    ];
+    for(const step of steps){
+      await loading.edit(`⚡ Redeeming...\n${step}`);
+      await new Promise(r=>setTimeout(r,150));
+    }
+
+    const randomIndex = Math.floor(Math.random()*stock[type].length);
+    const account = stock[type][randomIndex];
+    generatedCodes.delete(code);
+    totalRedeemed++;
+
+    const embed = new EmbedBuilder()
+      .setTitle("🎉 Account Redeemed")
+      .setDescription(`**Your ${type} account**\n\`${account}\`\nIf it doesn't work **ping staff for replacement.**`)
+      .setColor("Green")
+      .setImage(BANNER_URL)
+      .setFooter({ text:"Incredible Services", iconURL:FOOTER_GIF });
+
+    message.channel.send({ embeds:[embed] });
+  }
+
 });
 
 client.login(process.env.TOKEN);
