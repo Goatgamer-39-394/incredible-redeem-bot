@@ -67,22 +67,19 @@ client.on("messageCreate", async (message) => {
   const isOwner = OWNER_IDS.includes(message.author.id);
   const isStaff = message.member.roles.cache.has(STAFF_ROLE_ID) || isOwner;
 
-  // ================= ENABLE =================
+  // ================= ENABLE / DISABLE =================
   if (command === "enable" && isOwner) {
     systemEnabled = true;
     return message.reply("✅ Redeem system enabled.");
   }
 
-  // ================= DISABLE =================
   if (command === "disable" && isOwner) {
     systemEnabled = false;
     return message.reply("🛑 Redeem system disabled.");
   }
 
   // ================= DASHBOARD =================
-  if (command === "dashboard") {
-    if (!isOwner) return message.reply("❌ Owner only.");
-
+  if (command === "dashboard" && isOwner) {
     const uptime = Math.floor(process.uptime());
     const hours = Math.floor(uptime / 3600);
     const minutes = Math.floor((uptime % 3600) / 60);
@@ -91,8 +88,7 @@ client.on("messageCreate", async (message) => {
     const embed = new EmbedBuilder()
       .setTitle("⚙️ OWNER CONTROL PANEL")
       .setDescription(`
-**SYSTEM STATUS**
-Status: ${systemEnabled ? "🟢 ONLINE" : "🔴 OFFLINE"}
+**SYSTEM STATUS**: ${systemEnabled ? "🟢 ONLINE" : "🔴 OFFLINE"}
 
 **BOT INFO**
 Ping: ${client.ws.ping}ms
@@ -104,14 +100,12 @@ Users: ${client.users.cache.size}
 Steam: ${stock.steam.length}
 Minecraft: ${stock.minecraft.length}
 Crunchyroll: ${stock.crunchyroll.length}
-
 Total Accounts: ${stock.steam.length + stock.minecraft.length + stock.crunchyroll.length}
 
 **GENERATOR STATS**
 Active Codes: ${generatedCodes.size}
 Generated Codes: ${totalGenerated}
 Redeemed Accounts: ${totalRedeemed}
-
 Cooldown Time: ${COOLDOWN_TIME / 3600000} hours
 Users on Cooldown: ${cooldown.size}
 
@@ -130,10 +124,8 @@ Node Version: ${process.version}
     return message.reply({ embeds: [embed] });
   }
 
-  // ================= ADD STOCK =================
-  if (command === "addstock") {
-    if (!isStaff) return message.reply("❌ Staff only.");
-
+  // ================= STOCK MANAGEMENT =================
+  if (command === "addstock" && isStaff) {
     const type = args[0]?.toLowerCase();
     if (!["steam", "minecraft", "crunchyroll"].includes(type))
       return message.reply("Usage: .addstock steam email:pass");
@@ -146,35 +138,23 @@ Node Version: ${process.version}
     return message.reply(`✅ Added 1 **${type}** account.`);
   }
 
-  // ================= STAFF STOCK =================
-  if (command === "staffstock") {
-    if (!isStaff) return message.reply("❌ Staff only.");
-
+  if (command === "staffstock" && isStaff) {
     return message.reply(`
 📦 **STAFF STOCK PANEL**
-
 Steam: ${stock.steam.length}
 Minecraft: ${stock.minecraft.length}
 Crunchyroll: ${stock.crunchyroll.length}
-
 Total: ${stock.steam.length + stock.minecraft.length + stock.crunchyroll.length}
 `);
   }
 
-  // ================= PUBLIC STOCK =================
   if (command === "stock") {
     const embed = new EmbedBuilder()
       .setTitle("⚡ INCREDIBLE GENERATOR STOCK")
       .setDescription(`
-🎮 **STEAM**
-Stock: ♾️ INFINITE
-
-🍿 **CRUNCHYROLL**
-Stock: ♾️ INFINITE
-
-⛏ **MINECRAFT**
-Stock: ♾️ INFINITE
-
+🎮 **STEAM** Stock: ♾️ INFINITE
+🍿 **CRUNCHYROLL** Stock: ♾️ INFINITE
+⛏ **MINECRAFT** Stock: ♾️ INFINITE
 🚀 Use \`.gen steam | minecraft | crunchyroll\`
 `)
       .setColor("#8e44ff")
@@ -184,14 +164,13 @@ Stock: ♾️ INFINITE
     return message.reply({ embeds: [embed] });
   }
 
-  // ================= GENERATE =================
+  // ================= GENERATE WITH FLASHY LOADING =================
   if (command === "gen") {
     if (!systemEnabled) return message.reply("🛑 System disabled.");
-
-    const type = args[0]?.toLowerCase();
-    if (!["steam", "minecraft", "crunchyroll"].includes(type))
+    if (!["steam", "minecraft", "crunchyroll"].includes(args[0]?.toLowerCase()))
       return message.reply("❌ Usage: .gen steam | minecraft | crunchyroll");
 
+    const type = args[0].toLowerCase();
     const cooldownKey = message.author.id;
     const now = Date.now();
 
@@ -207,28 +186,27 @@ Stock: ♾️ INFINITE
 
     cooldown.set(cooldownKey, now);
 
-    // ====== VISUAL LOADING ======
-    const loading = await message.reply("⚡ Generating...");
+    // ===== FLASHY MATRIX LOADING =====
+    const loading = await message.reply("⚡ Initializing generator...");
 
-    const steps = [
-      "🟩⬜⬜⬜⬜⬜⬜⬜⬜⬜ 10%",
-      "🟩🟩⬜⬜⬜⬜⬜⬜⬜⬜ 20%",
-      "🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜ 30%",
-      "🟩🟩🟩🟩⬜⬜⬜⬜⬜⬜ 40%",
-      "🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜ 50%",
-      "🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜ 60%",
-      "🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜ 70%",
-      "🟩🟩🟩🟩🟩🟩🟩🟩⬜⬜ 80%",
-      "🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜ 90%",
-      "🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩 100%"
-    ];
+    const emojis = ["🟩","🟨","🟥","🟦","🟪"];
+    let progress = 0;
 
-    for (const step of steps) {
-      await loading.edit(`⚡ Generating...\n${step}`);
-      await new Promise(r => setTimeout(r, 250));
+    for (let i = 0; i <= 100; i += Math.floor(Math.random() * 8 + 2)) {
+      progress = i > 100 ? 100 : i;
+      const barLength = 10;
+      const filled = Math.floor((progress / 100) * barLength);
+      const empty = barLength - filled;
+
+      let bar = "";
+      for (let j = 0; j < filled; j++) bar += emojis[Math.floor(Math.random() * emojis.length)];
+      for (let j = 0; j < empty; j++) bar += "⬛";
+
+      await loading.edit(`⚡ Generating...\n${bar} ${progress}%`);
+      await new Promise(r => setTimeout(r, Math.floor(Math.random() * 180 + 100)));
     }
 
-    // ====== GENERATE CODE ======
+    // ===== GENERATE CODE =====
     const codeLength = type === "steam" ? 3 : type === "minecraft" ? 5 : 6;
     const code = generateCode(codeLength);
 
@@ -249,7 +227,6 @@ Stock: ♾️ INFINITE
         .setTitle("🎁 Incredible Generator")
         .setDescription(`
 Follow these steps:
-
 1️⃣ Create a redeem ticket  
 2️⃣ Type \`.redeem ${code}\`
 
@@ -260,7 +237,6 @@ Your Code: **${code}**
         .setFooter({ text: "Incredible Services" });
 
       await message.author.send({ embeds: [dmEmbed] });
-
     } catch {
       message.reply("❌ I cannot DM you.");
     }
@@ -269,15 +245,13 @@ Your Code: **${code}**
   // ================= REDEEM =================
   if (command === "redeem") {
     if (!systemEnabled) return message.reply("🛑 System disabled.");
-
     const code = args[0];
     if (!code) return message.reply("❌ Provide a code.");
     if (!generatedCodes.has(code)) return message.reply("❌ Invalid or expired code.");
 
     const type = generatedCodes.get(code);
 
-    if (stock[type].length === 0)
-      return message.reply("❌ Out of stock.");
+    if (stock[type].length === 0) return message.reply("❌ Out of stock.");
 
     const randomIndex = Math.floor(Math.random() * stock[type].length);
     const account = stock[type][randomIndex];
