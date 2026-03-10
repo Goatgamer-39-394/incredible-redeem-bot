@@ -16,6 +16,7 @@ const OWNER_IDS = ["1471837933429325855","1121404311319089153","1358359831140110
 const STAFF_ROLE_ID = "1465398987094888510";
 const BANNER_URL = "https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif";
 const FOOTER_GIF = "https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif";
+const GIF_67 = "https://media.tenor.com/3349401281762803381.gif"; // GIF for .67 command
 
 let systemEnabled = true;
 
@@ -63,7 +64,7 @@ client.on("messageCreate", async (message)=>{
 **GENERATOR STATS** Active Codes: ${generatedCodes.size} | Generated: ${totalGenerated} | Redeemed: ${totalRedeemed} | Cooldown: ${COOLDOWN_TIME/3600000}h | Users on cooldown: ${cooldown.size}
 **PERMISSIONS** Owners: ${OWNER_IDS.map(id=>`<@${id}>`).join(", ")} | Staff Role: <@&${STAFF_ROLE_ID}>
 **ALL COMMANDS**
-**User Commands:** .gen, .redeem, .stock, .help
+**User Commands:** .gen, .redeem, .stock, .help, .67
 **Staff Commands:** .addstock, .removestock, .staffstock, .staffhelp, .resetcooldown
 **Owner Commands:** .enable, .disable, .dashboard`)
       .setColor("#ff9900")
@@ -80,6 +81,7 @@ client.on("messageCreate", async (message)=>{
         "**.gen [steam|minecraft|crunchyroll]** - Generate a code\n" +
         "**.redeem [code]** - Redeem a code\n" +
         "**.stock** - Check available stock\n" +
+        "**.67** - Surprise GIF!\n" +
         "**.help** - Show this help menu"
       )
       .setColor("#00ffff")
@@ -93,9 +95,9 @@ client.on("messageCreate", async (message)=>{
     const embed = new EmbedBuilder()
       .setTitle("📜 Staff Commands")
       .setDescription(
-        "**.addstock [type] [email:pass]** - Add account to stock\n" +
+        "**.addstock [type] [number]** - Add multiple accounts to stock (each line after command is one account)\n" +
         "**.removestock [type] [email:pass]** - Remove account from stock\n" +
-        "**.staffstock** - Check staff stock\n" +
+        "**.staffstock [type]** - Show all accounts of a type or counts if no type\n" +
         "**.staffhelp** - Show this menu\n" +
         "**.resetcooldown [user_id]** - Reset cooldown for a user"
       )
@@ -112,28 +114,38 @@ client.on("messageCreate", async (message)=>{
     if(!userId) return message.reply("❌ Usage: .resetcooldown <user_id>");
     if(cooldown.has(userId)){
       cooldown.delete(userId);
-      return message.reply(`✅ Cooldown for <@${userId}> has been reset.`);
+      return message.reply(`✅ Cooldown for user ${userId} has been reset.`);
     } else {
-      return message.reply(`ℹ️ <@${userId}> is not on cooldown.`);
+      return message.reply(`ℹ️ User ${userId} is not on cooldown.`);
     }
   }
 
-  // ================= ADD STOCK =================
+  // ================= ADD STOCK (MULTI-LINE) =================
   if(command==="addstock" && isStaff){
     const type = args[0]?.toLowerCase();
+    const count = parseInt(args[1]);
     if(!["steam","minecraft","crunchyroll"].includes(type)) 
-      return message.reply("❌ Usage: .addstock [steam|minecraft|crunchyroll] email:pass");
-    const account = args[1];
-    if(!account || !account.includes(":")) return message.reply("❌ Invalid format");
-    stock[type].push(account);
-    return message.reply(`✅ Added 1 **${type}** account.`);
+      return message.reply("❌ Usage: .addstock [type] [number]\nThen list each account in the next lines (email:pass)");
+    if(isNaN(count) || count<1) return message.reply("❌ Provide a valid number of accounts to add.");
+
+    const lines = message.content.split("\n").slice(1);
+    if(lines.length !== count) return message.reply(`❌ You said ${count} accounts, but found ${lines.length} lines.`);
+
+    let added = 0;
+    for(const acc of lines){
+      if(acc.includes(":")){
+        stock[type].push(acc);
+        added++;
+      }
+    }
+    return message.reply(`✅ Added ${added} **${type}** accounts to stock.`);
   }
 
   // ================= REMOVE STOCK =================
   if(command==="removestock" && isStaff){
     const type = args[0]?.toLowerCase();
     if(!["steam","minecraft","crunchyroll"].includes(type)) 
-      return message.reply("❌ Usage: .removestock [steam|minecraft|crunchyroll] email:pass");
+      return message.reply("❌ Usage: .removestock [type] [email:pass]");
     const account = args[1];
     if(!account || !account.includes(":")) return message.reply("❌ Invalid format");
     const index = stock[type].indexOf(account);
@@ -144,7 +156,21 @@ client.on("messageCreate", async (message)=>{
 
   // ================= STAFF STOCK =================
   if(command==="staffstock" && isStaff){
-    return message.reply(`📦 **STAFF STOCK PANEL**\nSteam: ${stock.steam.length}\nMinecraft: ${stock.minecraft.length}\nCrunchyroll: ${stock.crunchyroll.length}\nTotal: ${stock.steam.length+stock.minecraft.length+stock.crunchyroll.length}`);
+    const type = args[0]?.toLowerCase();
+    if(type && !["steam","minecraft","crunchyroll"].includes(type))
+      return message.reply("❌ Invalid type. Use steam | minecraft | crunchyroll");
+
+    if(type){
+      if(stock[type].length === 0) return message.reply(`ℹ️ No accounts in ${type} stock.`);
+      const embed = new EmbedBuilder()
+        .setTitle(`📦 ${type.toUpperCase()} STOCK`)
+        .setDescription(stock[type].join("\n"))
+        .setColor("#00ffff")
+        .setFooter({ text:"Staff Stock Viewer", iconURL:FOOTER_GIF });
+      return message.reply({embeds:[embed]});
+    } else {
+      return message.reply(`📦 **STAFF STOCK PANEL**\nSteam: ${stock.steam.length}\nMinecraft: ${stock.minecraft.length}\nCrunchyroll: ${stock.crunchyroll.length}\nTotal: ${stock.steam.length+stock.minecraft.length+stock.crunchyroll.length}`);
+    }
   }
 
   // ================= PUBLIC STOCK =================
@@ -155,6 +181,17 @@ client.on("messageCreate", async (message)=>{
       .setColor("#8e44ff")
       .setImage(BANNER_URL)
       .setFooter({ text:"Incredible Services", iconURL:FOOTER_GIF });
+    return message.reply({embeds:[embed]});
+  }
+
+  // ================= .67 COMMAND =================
+  if(command==="67"){
+    const embed = new EmbedBuilder()
+      .setTitle("🎉 67 GIF")
+      .setDescription("Enjoy this!")
+      .setImage(GIF_67)
+      .setColor("#ff66cc")
+      .setFooter({ text:"Have fun!", iconURL:FOOTER_GIF });
     return message.reply({embeds:[embed]});
   }
 
@@ -202,7 +239,7 @@ client.on("messageCreate", async (message)=>{
         .setFooter({ text:"Thanks for using! Come again soon 😉", iconURL:FOOTER_GIF });
 
       await loadingMessage.edit({embeds:[updatedEmbed]});
-      await new Promise(r=>setTimeout(r, Math.floor(Math.random()*200+100)));
+      await new Promise(r=>setTimeout(r, Math.floor(Math.random()*50 + 50))); // faster
     }
 
     const codeLength = type==="steam"?3:type==="minecraft"?5:6;
@@ -264,7 +301,7 @@ client.on("messageCreate", async (message)=>{
         .setFooter({ text:"Processing your account...", iconURL:FOOTER_GIF });
 
       await loadingMessage.edit({embeds:[updatedEmbed]});
-      await new Promise(r=>setTimeout(r, Math.floor(Math.random()*200+100)));
+      await new Promise(r=>setTimeout(r, Math.floor(Math.random()*50 + 50))); // faster
     }
 
     const account = stock[type][Math.floor(Math.random()*stock[type].length)];
