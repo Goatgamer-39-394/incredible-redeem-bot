@@ -64,7 +64,7 @@ client.on("messageCreate", async (message)=>{
 **PERMISSIONS** Owners: ${OWNER_IDS.map(id=>`<@${id}>`).join(", ")} | Staff Role: <@&${STAFF_ROLE_ID}>
 **ALL COMMANDS**
 **User Commands:** .gen, .redeem, .stock, .help
-**Staff Commands:** .addstock, .staffstock, .staffhelp, .resetcooldown
+**Staff Commands:** .addstock, .removestock, .staffstock, .staffhelp, .resetcooldown
 **Owner Commands:** .enable, .disable, .dashboard`)
       .setColor("#ff9900")
       .setImage(BANNER_URL)
@@ -72,7 +72,7 @@ client.on("messageCreate", async (message)=>{
     return message.reply({embeds:[embed]});
   }
 
-  // ================= HELP COMMAND =================
+  // ================= USER HELP =================
   if(command==="help"){
     const embed = new EmbedBuilder()
       .setTitle("📜 User Commands")
@@ -94,6 +94,7 @@ client.on("messageCreate", async (message)=>{
       .setTitle("📜 Staff Commands")
       .setDescription(
         "**.addstock [type] [email:pass]** - Add account to stock\n" +
+        "**.removestock [type] [email:pass]** - Remove account from stock\n" +
         "**.staffstock** - Check staff stock\n" +
         "**.staffhelp** - Show this menu\n" +
         "**.resetcooldown [user_id]** - Reset cooldown for a user"
@@ -117,17 +118,38 @@ client.on("messageCreate", async (message)=>{
     }
   }
 
-  // ================= STOCK MANAGEMENT =================
+  // ================= ADD STOCK =================
   if(command==="addstock" && isStaff){
-    const type=args[0]?.toLowerCase(); if(!["steam","minecraft","crunchyroll"].includes(type)) return message.reply("Usage: .addstock steam email:pass");
-    const account=args[1]; if(!account||!account.includes(":")) return message.reply("❌ Invalid format");
-    stock[type].push(account); return message.reply(`✅ Added 1 **${type}** account.`);
+    const type = args[0]?.toLowerCase();
+    if(!["steam","minecraft","crunchyroll"].includes(type)) 
+      return message.reply("❌ Usage: .addstock [steam|minecraft|crunchyroll] email:pass");
+    const account = args[1];
+    if(!account || !account.includes(":")) return message.reply("❌ Invalid format");
+    stock[type].push(account);
+    return message.reply(`✅ Added 1 **${type}** account.`);
   }
+
+  // ================= REMOVE STOCK =================
+  if(command==="removestock" && isStaff){
+    const type = args[0]?.toLowerCase();
+    if(!["steam","minecraft","crunchyroll"].includes(type)) 
+      return message.reply("❌ Usage: .removestock [steam|minecraft|crunchyroll] email:pass");
+    const account = args[1];
+    if(!account || !account.includes(":")) return message.reply("❌ Invalid format");
+    const index = stock[type].indexOf(account);
+    if(index === -1) return message.reply(`❌ Account not found in ${type} stock.`);
+    stock[type].splice(index,1);
+    return message.reply(`✅ Removed 1 **${type}** account from stock.`);
+  }
+
+  // ================= STAFF STOCK =================
   if(command==="staffstock" && isStaff){
     return message.reply(`📦 **STAFF STOCK PANEL**\nSteam: ${stock.steam.length}\nMinecraft: ${stock.minecraft.length}\nCrunchyroll: ${stock.crunchyroll.length}\nTotal: ${stock.steam.length+stock.minecraft.length+stock.crunchyroll.length}`);
   }
+
+  // ================= PUBLIC STOCK =================
   if(command==="stock"){
-    const embed=new EmbedBuilder()
+    const embed = new EmbedBuilder()
       .setTitle("⚡ INCREDIBLE GENERATOR STOCK")
       .setDescription("🎮 STEAM: ♾️ INFINITE\n🍿 CRUNCHYROLL: ♾️ INFINITE\n⛏ MINECRAFT: ♾️ INFINITE\n🚀 Use `.gen steam | minecraft | crunchyroll`")
       .setColor("#8e44ff")
@@ -136,7 +158,7 @@ client.on("messageCreate", async (message)=>{
     return message.reply({embeds:[embed]});
   }
 
-  // ================= GENERATE WITH FLASHY LOADING =================
+  // ================= GENERATE =================
   if(command==="gen"){
     if(!systemEnabled) return message.reply("🛑 System disabled.");
     const type=args[0]?.toLowerCase();
@@ -210,11 +232,40 @@ client.on("messageCreate", async (message)=>{
   // ================= REDEEM =================
   if(command==="redeem"){
     if(!systemEnabled) return message.reply("🛑 System disabled.");
-    const code=args[0]; if(!code) return message.reply("❌ Provide a code.");
+    const code = args[0]; if(!code) return message.reply("❌ Provide a code.");
     if(!generatedCodes.has(code)) return message.reply("❌ Invalid or expired code.");
 
-    const type=generatedCodes.get(code);
+    const type = generatedCodes.get(code);
     if(stock[type].length===0) return message.reply("❌ Out of stock.");
+
+    const loadingMessage = await message.reply({embeds:[
+      new EmbedBuilder()
+        .setTitle("⚡ Redeeming your code...")
+        .setDescription("Starting redemption process...")
+        .setImage(BANNER_URL)
+        .setFooter({ text:"Processing your account...", iconURL:FOOTER_GIF })
+        .setColor("#f1c40f")
+    ]});
+
+    const messages = ["Checking code...","Verifying account...","Almost done...","Finalizing..."];
+    const emojis = ["🟩","🟨","🟥","🟦","🟪"];
+    for(let i=0;i<15;i++){
+      const progress = Math.floor((i/15)*100);
+      const barLength = 10, filled=Math.floor((progress/100)*barLength), empty=barLength-filled;
+      let bar = "";
+      for(let j=0;j<filled;j++) bar+=emojis[Math.floor(Math.random()*emojis.length)];
+      for(let j=0;j<empty;j++) bar+="⬛";
+
+      const updatedEmbed = new EmbedBuilder()
+        .setTitle("⚡ Redeeming your code...")
+        .setDescription(`${messages[Math.floor(Math.random()*messages.length)]}\nProgress: ${bar} ${progress}%`)
+        .setColor("#f1c40f")
+        .setImage(BANNER_URL)
+        .setFooter({ text:"Processing your account...", iconURL:FOOTER_GIF });
+
+      await loadingMessage.edit({embeds:[updatedEmbed]});
+      await new Promise(r=>setTimeout(r, Math.floor(Math.random()*200+100)));
+    }
 
     const account = stock[type][Math.floor(Math.random()*stock[type].length)];
     generatedCodes.delete(code); totalRedeemed++;
@@ -226,7 +277,7 @@ client.on("messageCreate", async (message)=>{
       .setImage(BANNER_URL)
       .setFooter({ text:"Incredible Services", iconURL:FOOTER_GIF });
 
-    message.channel.send({embeds:[embed]});
+    await loadingMessage.edit({content:"", embeds:[embed]});
   }
 
 });
