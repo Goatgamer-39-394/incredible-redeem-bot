@@ -176,20 +176,18 @@ client.on("messageCreate", async (message)=>{
     return message.reply({embeds:[embed]});
   }
 
-  // ================= .67 COMMAND =================
+  // ================= .67 COMMAND (GIF) =================
   if(command==="67"){
     if(!isStaff && !isOwner) return message.reply("❌ Staff or owners only.");
 
     const embed = new EmbedBuilder()
-      .setTitle("🎉 67 Video")
-      .setDescription("Enjoy this!")
+      .setTitle("🎉 67")
+      .setDescription("Enjoy the 67 GIF!")
       .setColor("#ff66cc")
+      .setImage(GIF_67)
       .setFooter({ text:"Staff & Owner Exclusive!", iconURL:FOOTER_GIF });
 
-    return message.reply({
-      embeds:[embed],
-      files:["./67-67-kid.mp4"]
-    });
+    return message.reply({ embeds:[embed] });
   }
 
   // ================= GENERATE =================
