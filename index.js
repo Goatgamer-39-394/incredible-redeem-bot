@@ -26,7 +26,7 @@ const generatedCodes = new Map();
 const cooldown = new Map();
 let totalGenerated = 0;
 let totalRedeemed = 0;
-const COOLDOWN_TIME = 2*60*60*1000; // 2 hours
+const COOLDOWN_TIME = 2*60*60*1000;
 
 // ================= CODE GENERATOR =================
 function generateCode(length) {
@@ -82,7 +82,7 @@ client.on("messageCreate", async (message)=>{
         "**.redeem [code]** - Redeem a code\n" +
         "**.stock** - Check stock\n" +
         "**.ghelp** - Show this help menu\n" +
-        "**.67** - Staff/Owner GIF!"
+        "**.67** - Staff/Owner Video!"
       )
       .setColor("#00ffff")
       .setImage(BANNER_URL)
@@ -120,15 +120,15 @@ client.on("messageCreate", async (message)=>{
     }
   }
 
-  // ================= ADD STOCK (MULTI-LINE) =================
+  // ================= ADD STOCK =================
   if(command==="addstock" && isStaff){
     const type = args[0]?.toLowerCase();
     const count = parseInt(args[1]);
-    if(!["steam","minecraft","crunchyroll"].includes(type)) 
-      return message.reply("❌ Usage: .addstock [type] [number]\nThen list each account in the next lines (email:pass)");
-    if(isNaN(count) || count<1) return message.reply("❌ Provide a valid number of accounts to add.");
+    if(!["steam","minecraft","crunchyroll"].includes(type))
+      return message.reply("❌ Usage: .addstock [type] [number]");
+    if(isNaN(count) || count<1) return message.reply("❌ Provide a valid number.");
     const lines = message.content.split("\n").slice(1);
-    if(lines.length !== count) return message.reply(`❌ You said ${count} accounts, but found ${lines.length} lines.`);
+    if(lines.length !== count) return message.reply(`❌ Expected ${count} accounts.`);
     let added = 0;
     for(const acc of lines){
       if(acc.includes(":")){
@@ -142,23 +142,18 @@ client.on("messageCreate", async (message)=>{
   // ================= REMOVE STOCK =================
   if(command==="removestock" && isStaff){
     const type = args[0]?.toLowerCase();
-    if(!["steam","minecraft","crunchyroll"].includes(type)) 
-      return message.reply("❌ Usage: .removestock [type] [email:pass]");
     const account = args[1];
-    if(!account || !account.includes(":")) return message.reply("❌ Invalid format");
-    const index = stock[type].indexOf(account);
-    if(index === -1) return message.reply(`❌ Account not found in ${type} stock.`);
+    const index = stock[type]?.indexOf(account);
+    if(index === -1) return message.reply("❌ Account not found.");
     stock[type].splice(index,1);
-    return message.reply(`✅ Removed 1 **${type}** account from stock.`);
+    return message.reply(`✅ Removed 1 **${type}** account.`);
   }
 
   // ================= STAFF STOCK =================
   if(command==="staffstock" && isStaff){
     const type = args[0]?.toLowerCase();
-    if(type && !["steam","minecraft","crunchyroll"].includes(type))
-      return message.reply("❌ Invalid type. Use steam | minecraft | crunchyroll");
     if(type){
-      if(stock[type].length === 0) return message.reply(`ℹ️ No accounts in ${type} stock.`);
+      if(stock[type].length === 0) return message.reply("ℹ️ No accounts.");
       const embed = new EmbedBuilder()
         .setTitle(`📦 ${type.toUpperCase()} STOCK`)
         .setDescription(stock[type].join("\n"))
@@ -166,7 +161,7 @@ client.on("messageCreate", async (message)=>{
         .setFooter({ text:"Staff Stock Viewer", iconURL:FOOTER_GIF });
       return message.reply({embeds:[embed]});
     } else {
-      return message.reply(`📦 **STAFF STOCK PANEL**\nSteam: ${stock.steam.length}\nMinecraft: ${stock.minecraft.length}\nCrunchyroll: ${stock.crunchyroll.length}\nTotal: ${stock.steam.length+stock.minecraft.length+stock.crunchyroll.length}`);
+      return message.reply(`Steam: ${stock.steam.length}\nMinecraft: ${stock.minecraft.length}\nCrunchyroll: ${stock.crunchyroll.length}`);
     }
   }
 
@@ -184,13 +179,17 @@ client.on("messageCreate", async (message)=>{
   // ================= .67 COMMAND =================
   if(command==="67"){
     if(!isStaff && !isOwner) return message.reply("❌ Staff or owners only.");
+
     const embed = new EmbedBuilder()
-      .setTitle("🎉 67 GIF")
+      .setTitle("🎉 67 Video")
       .setDescription("Enjoy this!")
-      .setImage(GIF_67)
       .setColor("#ff66cc")
       .setFooter({ text:"Staff & Owner Exclusive!", iconURL:FOOTER_GIF });
-    return message.reply({embeds:[embed]});
+
+    return message.reply({
+      embeds:[embed],
+      files:["./67-67-kid.mp4"]
+    });
   }
 
   // ================= GENERATE =================
@@ -199,8 +198,10 @@ client.on("messageCreate", async (message)=>{
     const type = args[0]?.toLowerCase();
     if(!["steam","minecraft","crunchyroll"].includes(type))
       return message.reply("❌ Usage: .gen steam | minecraft | crunchyroll");
+
     const cooldownKey = message.author.id;
     const now = Date.now();
+
     if(cooldown.has(cooldownKey)){
       const expiration = cooldown.get(cooldownKey)+COOLDOWN_TIME;
       if(now < expiration){
@@ -210,30 +211,13 @@ client.on("messageCreate", async (message)=>{
         return message.reply(`⏳ Wait ${h}h ${m}m.`);
       }
     }
+
     cooldown.set(cooldownKey, now);
+
     const codeLength = type==="steam"?3:type==="minecraft"?5:6;
     const code = generateCode(codeLength);
     generatedCodes.set(code,type);
     totalGenerated++;
-
-    // Visual Loading Screen
-    const loading = await message.reply("⚡ Generating...");
-    const steps = [
-      "🟩⬜⬜⬜⬜⬜⬜⬜⬜⬜ 10%",
-      "🟩🟩⬜⬜⬜⬜⬜⬜⬜⬜ 20%",
-      "🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜ 30%",
-      "🟩🟩🟩🟩⬜⬜⬜⬜⬜⬜ 40%",
-      "🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜ 50%",
-      "🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜ 60%",
-      "🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜ 70%",
-      "🟩🟩🟩🟩🟩🟩🟩🟩⬜⬜ 80%",
-      "🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜ 90%",
-      "🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩 100%"
-    ];
-    for(const step of steps){
-      await loading.edit(`⚡ Generating...\n${step}`);
-      await new Promise(r=>setTimeout(r,150)); // fast 150ms
-    }
 
     const embed = new EmbedBuilder()
       .setTitle("SUCCESS ✅")
@@ -244,13 +228,13 @@ client.on("messageCreate", async (message)=>{
 
     await message.reply({ embeds:[embed] });
 
-    // DM the code
     try{
       const dmEmbed = new EmbedBuilder()
         .setTitle("🎁 Incredible Generator")
-        .setDescription(`Follow these steps:\n1️⃣ Create a redeem ticket\n2️⃣ Type \`.redeem ${code}\`\n\nYour Code: **${code}**`)
+        .setDescription(`Follow steps:\n1️⃣ Create redeem ticket\n2️⃣ Type \`.redeem ${code}\`\n\nYour Code: **${code}**`)
         .setColor("#8e44ff")
         .setImage(BANNER_URL);
+
       await message.author.send({ embeds:[dmEmbed] });
     }catch{
       message.reply("❌ I cannot DM you.");
@@ -260,39 +244,22 @@ client.on("messageCreate", async (message)=>{
   // ================= REDEEM =================
   if(command==="redeem"){
     if(!systemEnabled) return message.reply("🛑 System disabled.");
+
     const code = args[0];
-    if(!code) return message.reply("❌ Provide a code.");
     if(!generatedCodes.has(code)) return message.reply("❌ Invalid or expired code.");
+
     const type = generatedCodes.get(code);
     if(stock[type].length===0) return message.reply("❌ Out of stock.");
 
-    // Visual Redeem Loading
-    const loading = await message.reply("⚡ Redeeming...");
-    const steps = [
-      "🟩⬜⬜⬜⬜⬜⬜⬜⬜⬜ 10%",
-      "🟩🟩⬜⬜⬜⬜⬜⬜⬜⬜ 20%",
-      "🟩🟩🟩⬜⬜⬜⬜⬜⬜⬜ 30%",
-      "🟩🟩🟩🟩⬜⬜⬜⬜⬜⬜ 40%",
-      "🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜ 50%",
-      "🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜ 60%",
-      "🟩🟩🟩🟩🟩🟩🟩⬜⬜⬜ 70%",
-      "🟩🟩🟩🟩🟩🟩🟩🟩⬜⬜ 80%",
-      "🟩🟩🟩🟩🟩🟩🟩🟩🟩⬜ 90%",
-      "🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩 100%"
-    ];
-    for(const step of steps){
-      await loading.edit(`⚡ Redeeming...\n${step}`);
-      await new Promise(r=>setTimeout(r,150));
-    }
-
     const randomIndex = Math.floor(Math.random()*stock[type].length);
     const account = stock[type][randomIndex];
+
     generatedCodes.delete(code);
     totalRedeemed++;
 
     const embed = new EmbedBuilder()
       .setTitle("🎉 Account Redeemed")
-      .setDescription(`**Your ${type} account**\n\`${account}\`\nIf it doesn't work **ping staff for replacement.**`)
+      .setDescription(`**Your ${type} account**\n\`${account}\``)
       .setColor("Green")
       .setImage(BANNER_URL)
       .setFooter({ text:"Incredible Services", iconURL:FOOTER_GIF });
