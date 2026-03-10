@@ -17,7 +17,6 @@ const STAFF_ROLE_ID = "1465398987094888510";
 
 const BANNER_URL = "https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif";
 const FOOTER_GIF = "https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif";
-const GIF_67 = "https://media.tenor.com/3349401281762803381.gif";
 
 let systemEnabled = true;
 
@@ -68,7 +67,7 @@ client.on("messageCreate", async (message)=>{
     return message.reply("🛑 Redeem system disabled.");
   }
 
-  // ================= USER HELP =================
+  // ================= HELP =================
   if(command==="ghelp"){
     const embed = new EmbedBuilder()
       .setTitle("📜 User Commands")
@@ -111,10 +110,13 @@ client.on("messageCreate", async (message)=>{
     const embed = new EmbedBuilder()
       .setTitle("🎉 67")
       .setColor("#ff66cc")
-      .setImage(GIF_67)
+      .setImage("attachment://67.gif")
       .setFooter({text:"Incredible Services",iconURL:FOOTER_GIF});
 
-    return message.reply({embeds:[embed]});
+    return message.reply({
+      embeds:[embed],
+      files:["./67.gif"]
+    });
   }
 
   // ================= GENERATE =================
@@ -131,11 +133,9 @@ client.on("messageCreate", async (message)=>{
     const now = Date.now();
 
     if(cooldown.has(cooldownKey)){
-
       const expiration = cooldown.get(cooldownKey) + COOLDOWN_TIME;
 
       if(now < expiration){
-
         const timeLeft = expiration-now;
         const h = Math.floor(timeLeft/3600000);
         const m = Math.floor((timeLeft%3600000)/60000);
@@ -154,7 +154,6 @@ client.on("messageCreate", async (message)=>{
     const code = generateCode(codeLength);
 
     generatedCodes.set(code,type);
-
     totalGenerated++;
 
     const loadingEmbed = new EmbedBuilder()
@@ -230,11 +229,9 @@ client.on("messageCreate", async (message)=>{
       return message.reply("❌ Out of stock.");
 
     const randomIndex = Math.floor(Math.random()*stock[type].length);
-
     const account = stock[type][randomIndex];
 
     generatedCodes.delete(code);
-
     totalRedeemed++;
 
     const embed = new EmbedBuilder()
