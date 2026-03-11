@@ -2,12 +2,12 @@ require("dotenv").config();
 const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 
 const client = new Client({
-  intents:[
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.DirectMessages
-  ]
+intents:[
+GatewayIntentBits.Guilds,
+GatewayIntentBits.GuildMessages,
+GatewayIntentBits.MessageContent,
+GatewayIntentBits.DirectMessages
+]
 });
 
 const PREFIX=".";
@@ -48,7 +48,7 @@ result+=chars.charAt(Math.floor(Math.random()*chars.length));
 return result;
 }
 
-client.on("ready",()=>{
+client.once("ready",()=>{
 console.log(`Logged in as ${client.user.tag}`);
 });
 
@@ -87,19 +87,19 @@ const embed=new EmbedBuilder()
 .setImage(BANNER_URL)
 .setFooter({text:"Incredible Services",iconURL:FOOTER_GIF})
 .setDescription(`
-**SYSTEM**
+SYSTEM
 Status: ${systemEnabled ? "🟢 ONLINE":"🔴 OFFLINE"}
 
-**BOT**
+BOT
 Ping: ${client.ws.ping}ms
 Uptime: ${h}h ${m}m ${s}s
 
-**STOCK**
+STOCK
 Steam: ${stock.steam.length}
 Minecraft: ${stock.minecraft.length}
 Crunchyroll: ${stock.crunchyroll.length}
 
-**GENERATOR**
+GENERATOR
 Generated: ${totalGenerated}
 Redeemed: ${totalRedeemed}
 Active Codes: ${generatedCodes.size}
@@ -131,7 +131,7 @@ const embed=new EmbedBuilder()
 .setTitle("📜 Staff Commands")
 .setColor("#ff00ff")
 .setImage(BANNER_URL)
-.setFooter({text:"Staff Panel",iconURL:FOOTER_GIF})
+.setFooter({text:"Incredible Services",iconURL:FOOTER_GIF})
 .setDescription(`
 .addstock [type] email:pass
 .removestock [type] email:pass
@@ -145,11 +145,9 @@ return message.reply({embeds:[embed]});
 if(command==="addstock" && isStaff){
 
 const type=args[0]?.toLowerCase();
-
-if(!["steam","minecraft","crunchyroll"].includes(type))
-return message.reply("Usage: .addstock steam email:pass");
-
 const accounts=args.slice(1);
+
+if(!stock[type]) return message.reply("Invalid type.");
 
 let added=0;
 
@@ -159,8 +157,6 @@ stock[type].push(acc);
 added++;
 }
 }
-
-if(added===0) return message.reply("No valid accounts.");
 
 return message.reply(`Added ${added} ${type} account(s).`);
 }
@@ -184,6 +180,7 @@ if(command==="staffstock" && isStaff){
 const embed=new EmbedBuilder()
 .setTitle("📦 STOCK")
 .setColor("#00ffff")
+.setFooter({text:"Incredible Services",iconURL:FOOTER_GIF})
 .setDescription(`
 Steam: ${stock.steam.length}
 Minecraft: ${stock.minecraft.length}
@@ -225,7 +222,7 @@ return message.reply({embeds:[embed]});
 
 if(command==="67"){
 
-if(!isStaff && !isOwner) return message.reply("Staff only.");
+if(!isStaff) return message.reply("Staff only.");
 
 const embed=new EmbedBuilder()
 .setTitle("🎉 67")
@@ -245,8 +242,7 @@ if(!systemEnabled) return message.reply("Generator disabled.");
 
 const type=args[0]?.toLowerCase();
 
-if(!["steam","minecraft","crunchyroll"].includes(type))
-return message.reply("Usage: .gen steam | minecraft | crunchyroll");
+if(!stock[type]) return message.reply("Usage: .gen steam | minecraft | crunchyroll");
 
 const user=message.author.id;
 const now=Date.now();
@@ -273,49 +269,24 @@ totalGenerated++;
 const loading=new EmbedBuilder()
 .setTitle("⚡ Incredible Generator")
 .setColor("#8e44ff")
-.setImage(BANNER_URL)
 .setFooter({text:"Incredible Services",iconURL:FOOTER_GIF})
 .setDescription("```Initializing generator...\n[░░░░░░░░░░] 0%```");
 
 const msg=await message.reply({embeds:[loading]});
 
-setTimeout(()=>{
-loading.setDescription("```Connecting to database...\n[██░░░░░░░░] 10%```");
-msg.edit({embeds:[loading]});
-},700);
-
-setTimeout(()=>{
-loading.setDescription("```Bypassing security...\n[███░░░░░░░] 30%```");
-msg.edit({embeds:[loading]});
-},1400);
-
-setTimeout(()=>{
-loading.setDescription("```Decrypting accounts...\n[█████░░░░░] 50%```");
-msg.edit({embeds:[loading]});
-},2100);
-
-setTimeout(()=>{
-loading.setDescription("```Validating service...\n[███████░░░] 70%```");
-msg.edit({embeds:[loading]});
-},2800);
-
-setTimeout(()=>{
-loading.setDescription("```Finalizing generation...\n[█████████░] 90%```");
-msg.edit({embeds:[loading]});
-},3500);
-
+setTimeout(()=>{loading.setDescription("```Connecting...\n[██░░░░░░░░] 25%```");msg.edit({embeds:[loading]});},700);
+setTimeout(()=>{loading.setDescription("```Decrypting...\n[████░░░░░░] 50%```");msg.edit({embeds:[loading]});},1400);
+setTimeout(()=>{loading.setDescription("```Finalizing...\n[███████░░░] 75%```");msg.edit({embeds:[loading]});},2100);
 setTimeout(async()=>{
 
 const embed=new EmbedBuilder()
 .setTitle("✅ Success")
-.setDescription(`${message.author} I've sent the **${type} account details** to your DMs.`)
 .setColor("#57F287")
 .setImage(BANNER_URL)
-.setFooter({text:"Incredible Services",iconURL:FOOTER_GIF});
+.setFooter({text:"Incredible Services",iconURL:FOOTER_GIF})
+.setDescription(`${message.author} check your DMs for your **${type} code**.`);
 
 await msg.edit({embeds:[embed]});
-
-try{
 
 const dm=new EmbedBuilder()
 .setTitle("🎁 Incredible Generator")
@@ -323,22 +294,15 @@ const dm=new EmbedBuilder()
 .setImage(BANNER_URL)
 .setFooter({text:"Incredible Services",iconURL:FOOTER_GIF})
 .setDescription(`
-Follow steps:
-
 1️⃣ Create redeem ticket
 2️⃣ Type .redeem ${code}
 
 Your Code: **${code}**
 `);
 
-await message.author.send({embeds:[dm]});
+message.author.send({embeds:[dm]});
 
-}catch{
-message.reply("I couldn't DM you.");
-}
-
-},4200);
-
+},2800);
 }
 
 if(command==="redeem"){
@@ -347,13 +311,11 @@ if(!systemEnabled) return message.reply("System disabled.");
 
 const code=args[0];
 
-if(!generatedCodes.has(code))
-return message.reply("Invalid code.");
+if(!generatedCodes.has(code)) return message.reply("Invalid code.");
 
 const type=generatedCodes.get(code);
 
-if(stock[type].length===0)
-return message.reply("Out of stock.");
+if(stock[type].length===0) return message.reply("Out of stock.");
 
 const index=Math.floor(Math.random()*stock[type].length);
 const account=stock[type][index];
@@ -361,12 +323,39 @@ const account=stock[type][index];
 generatedCodes.delete(code);
 totalRedeemed++;
 
+const loading=new EmbedBuilder()
+.setTitle("⚡ Redeeming Account")
+.setColor("#8e44ff")
+.setFooter({text:"Incredible Services",iconURL:FOOTER_GIF})
+.setDescription("```Starting redeem...\n[░░░░░░░░░░] 0%```");
+
+const msg=await message.reply({embeds:[loading]});
+
+setTimeout(()=>{loading.setDescription("```Verifying code...\n[██░░░░░░░░] 25%```");msg.edit({embeds:[loading]});},700);
+setTimeout(()=>{loading.setDescription("```Checking stock...\n[████░░░░░░] 50%```");msg.edit({embeds:[loading]});},1400);
+setTimeout(()=>{loading.setDescription("```Finalizing...\n[███████░░░] 75%```");msg.edit({embeds:[loading]});},2100);
+
+setTimeout(()=>{
+
 const embed=new EmbedBuilder()
 .setTitle("🎉 Account Redeemed")
 .setColor("Green")
-.setDescription(`${account}`);
+.setImage(BANNER_URL)
+.setFooter({text:"Incredible Services",iconURL:FOOTER_GIF})
+.setDescription(`
+Here is your **${type}** account
+\`${account}\`
 
-message.channel.send({embeds:[embed]});
+Please contact staff if not working.
+
+Enjoy your account  
+Thank you for using the gen  
+Vouch the bot if you want
+`);
+
+msg.edit({embeds:[embed]});
+
+},2800);
 }
 
 });
