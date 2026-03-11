@@ -2,7 +2,7 @@ require("dotenv").config();
 const { Client, GatewayIntentBits, EmbedBuilder } = require("discord.js");
 
 const client = new Client({
-  intents: [
+  intents:[
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
@@ -11,372 +11,399 @@ const client = new Client({
 });
 
 // ================= SETTINGS =================
-const PREFIX = ".";
-const OWNER_IDS = ["1471837933429325855","1121404311319089153","1358359831140110426"];
-const STAFF_ROLE_ID = "1465398987094888510";
 
-const BANNER_URL = "https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif";
-const FOOTER_GIF = "https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif";
+const PREFIX=".";
 
-let systemEnabled = true;
+const OWNER_IDS=[
+"1471837933429325855",
+"1121404311319089153",
+"1358359831140110426"
+];
 
-// ================= STORAGE =================
-const stock = { steam: [], minecraft: [], crunchyroll: [] };
-const generatedCodes = new Map();
-const cooldown = new Map();
+const STAFF_ROLE_ID="1465398987094888510";
 
-let totalGenerated = 0;
-let totalRedeemed = 0;
+const BANNER_URL="https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif";
+const FOOTER_GIF="https://cdn.discordapp.com/attachments/1474387569818079395/1476581540740726979/lv_0_20260226193526.gif";
 
-const COOLDOWN_TIME = 2 * 60 * 60 * 1000;
+let systemEnabled=true;
+
+// ================= DATABASE =================
+
+const stock={
+steam:[],
+minecraft:[],
+crunchyroll:[]
+};
+
+const generatedCodes=new Map();
+const cooldown=new Map();
+
+let totalGenerated=0;
+let totalRedeemed=0;
+
+const COOLDOWN_TIME=2*60*60*1000;
 
 // ================= CODE GENERATOR =================
+
 function generateCode(length){
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let result = "";
-  for(let i=0;i<length;i++){
-    result += chars.charAt(Math.floor(Math.random()*chars.length));
-  }
-  return result;
+const chars="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+let result="";
+for(let i=0;i<length;i++){
+result+=chars.charAt(Math.floor(Math.random()*chars.length));
+}
+return result;
 }
 
 // ================= READY =================
+
 client.on("ready",()=>{
-  console.log(`Logged in as ${client.user.tag}`);
+console.log(`Logged in as ${client.user.tag}`);
 });
 
-// ================= COMMAND HANDLER =================
-client.on("messageCreate", async (message)=>{
+// ================= COMMANDS =================
 
-  if(!message.guild || message.author.bot || !message.content.startsWith(PREFIX)) return;
+client.on("messageCreate",async(message)=>{
 
-  const args = message.content.slice(PREFIX.length).trim().split(/ +/);
-  const command = args.shift().toLowerCase();
+if(!message.guild) return;
+if(message.author.bot) return;
+if(!message.content.startsWith(PREFIX)) return;
 
-  const isOwner = OWNER_IDS.includes(message.author.id);
-  const isStaff = message.member.roles.cache.has(STAFF_ROLE_ID) || isOwner;
+const args=message.content.slice(PREFIX.length).trim().split(/ +/);
+const command=args.shift().toLowerCase();
 
-  // ================= ENABLE / DISABLE =================
-  if(command==="enable" && isOwner){
-    systemEnabled=true;
-    return message.reply("✅ Redeem system enabled.");
-  }
+const isOwner=OWNER_IDS.includes(message.author.id);
+const isStaff=message.member.roles.cache.has(STAFF_ROLE_ID)||isOwner;
 
-  if(command==="disable" && isOwner){
-    systemEnabled=false;
-    return message.reply("🛑 Redeem system disabled.");
-  }
+// ================= ENABLE =================
 
-  // ================= DASHBOARD =================
-  if(command==="dashboard" && isOwner){
+if(command==="enable" && isOwner){
+systemEnabled=true;
+return message.reply("✅ Generator enabled.");
+}
 
-    const uptime = Math.floor(process.uptime());
-    const h = Math.floor(uptime/3600);
-    const m = Math.floor((uptime%3600)/60);
-    const s = uptime%60;
+if(command==="disable" && isOwner){
+systemEnabled=false;
+return message.reply("🛑 Generator disabled.");
+}
 
-    const embed = new EmbedBuilder()
-      .setTitle("⚙️ OWNER CONTROL PANEL")
-      .setDescription(`
-**SYSTEM STATUS:** ${systemEnabled ? "🟢 ONLINE":"🔴 OFFLINE"}
+// ================= DASHBOARD =================
 
-**BOT INFO**
+if(command==="dashboard" && isOwner){
+
+const uptime=Math.floor(process.uptime());
+const h=Math.floor(uptime/3600);
+const m=Math.floor((uptime%3600)/60);
+const s=uptime%60;
+
+const embed=new EmbedBuilder()
+.setTitle("⚙️ OWNER CONTROL PANEL")
+.setColor("#ff9900")
+.setImage(BANNER_URL)
+.setFooter({text:"Incredible Services",iconURL:FOOTER_GIF})
+.setDescription(`
+
+**SYSTEM**
+Status: ${systemEnabled ? "🟢 ONLINE":"🔴 OFFLINE"}
+
+**BOT**
 Ping: ${client.ws.ping}ms
 Uptime: ${h}h ${m}m ${s}s
 Servers: ${client.guilds.cache.size}
 Users: ${client.users.cache.size}
 
-**STOCK DATABASE**
+**STOCK**
 Steam: ${stock.steam.length}
 Minecraft: ${stock.minecraft.length}
 Crunchyroll: ${stock.crunchyroll.length}
 
-**GENERATOR STATS**
+**GENERATOR**
 Generated: ${totalGenerated}
 Redeemed: ${totalRedeemed}
 Active Codes: ${generatedCodes.size}
 
-**COMMANDS**
+`);
 
-User: .gen .redeem .stock .ghelp .67
-Staff: .addstock .removestock .staffstock .staffhelp .resetcooldown
-Owner: .enable .disable .dashboard
-`)
-      .setColor("#ff9900")
-      .setImage(BANNER_URL)
-      .setFooter({text:"Incredible Services",iconURL:FOOTER_GIF});
+return message.reply({embeds:[embed]});
+}
 
-    return message.reply({embeds:[embed]});
-  }
+// ================= USER HELP =================
 
-  // ================= USER HELP =================
-  if(command==="ghelp"){
+if(command==="ghelp"){
 
-    const embed = new EmbedBuilder()
-      .setTitle("📜 User Commands")
-      .setDescription(`
+const embed=new EmbedBuilder()
+.setTitle("📜 User Commands")
+.setColor("#00ffff")
+.setImage(BANNER_URL)
+.setFooter({text:"Incredible Services",iconURL:FOOTER_GIF})
+.setDescription(`
 .gen steam | minecraft | crunchyroll
 .redeem [code]
 .stock
 .ghelp
-.67
-`)
-      .setColor("#00ffff")
-      .setImage(BANNER_URL)
-      .setFooter({text:"Incredible Services",iconURL:FOOTER_GIF});
+`);
 
-    return message.reply({embeds:[embed]});
-  }
+return message.reply({embeds:[embed]});
+}
 
-  // ================= STAFF HELP =================
-  if(command==="staffhelp" && isStaff){
+// ================= STAFF HELP =================
 
-    const embed = new EmbedBuilder()
-      .setTitle("📜 Staff Commands")
-      .setDescription(`
-.addstock [type] [number]
-.removestock [type] [account]
-.staffstock [type]
+if(command==="staffhelp" && isStaff){
+
+const embed=new EmbedBuilder()
+.setTitle("📜 Staff Commands")
+.setColor("#ff00ff")
+.setImage(BANNER_URL)
+.setFooter({text:"Staff Panel",iconURL:FOOTER_GIF})
+.setDescription(`
+.addstock [type] email:pass
+.removestock [type] email:pass
+.staffstock
 .resetcooldown [user_id]
-`)
-      .setColor("#ff00ff")
-      .setImage(BANNER_URL)
-      .setFooter({text:"Staff Panel",iconURL:FOOTER_GIF});
+`);
 
-    return message.reply({embeds:[embed]});
-  }
+return message.reply({embeds:[embed]});
+}
 
-  // ================= ADD STOCK =================
-  if(command==="addstock" && isStaff){
+// ================= ADD STOCK =================
 
-    const type = args[0]?.toLowerCase();
-    const count = parseInt(args[1]);
+if(command==="addstock" && isStaff){
 
-    if(!["steam","minecraft","crunchyroll"].includes(type))
-      return message.reply("❌ Usage: .addstock [type] [number]");
+const type=args[0]?.toLowerCase();
 
-    const lines = message.content.split("\n").slice(1);
+if(!["steam","minecraft","crunchyroll"].includes(type))
+return message.reply("❌ Usage: .addstock [type] email:pass");
 
-    let added = 0;
+const accounts=args.slice(1);
 
-    for(const acc of lines){
-      if(acc.includes(":")){
-        stock[type].push(acc);
-        added++;
-      }
-    }
+let added=0;
 
-    return message.reply(`✅ Added ${added} ${type} accounts.`);
-  }
+for(const acc of accounts){
 
-  // ================= REMOVE STOCK =================
-  if(command==="removestock" && isStaff){
+if(acc.includes(":")){
+stock[type].push(acc);
+added++;
+}
 
-    const type = args[0]?.toLowerCase();
-    const account = args[1];
+}
 
-    const index = stock[type]?.indexOf(account);
+if(added===0) return message.reply("❌ No valid accounts.");
 
-    if(index === -1) return message.reply("❌ Account not found.");
+return message.reply(`✅ Added ${added} ${type} account(s).`);
+}
 
-    stock[type].splice(index,1);
+// ================= REMOVE STOCK =================
 
-    return message.reply(`✅ Removed account.`);
-  }
+if(command==="removestock" && isStaff){
 
-  // ================= STAFF STOCK =================
-  if(command==="staffstock" && isStaff){
+const type=args[0]?.toLowerCase();
+const account=args[1];
 
-    const type = args[0]?.toLowerCase();
+const index=stock[type]?.indexOf(account);
 
-    if(type){
+if(index===-1) return message.reply("Account not found.");
 
-      if(stock[type].length===0) return message.reply("No accounts.");
+stock[type].splice(index,1);
 
-      const embed = new EmbedBuilder()
-        .setTitle(`${type.toUpperCase()} STOCK`)
-        .setDescription(stock[type].join("\n"))
-        .setColor("#00ffff");
+return message.reply("✅ Account removed.");
+}
 
-      return message.reply({embeds:[embed]});
+// ================= STAFF STOCK =================
 
-    }else{
+if(command==="staffstock" && isStaff){
 
-      return message.reply(`
+const embed=new EmbedBuilder()
+.setTitle("📦 STOCK")
+.setColor("#00ffff")
+.setDescription(`
 Steam: ${stock.steam.length}
 Minecraft: ${stock.minecraft.length}
 Crunchyroll: ${stock.crunchyroll.length}
 `);
-    }
-  }
 
-  // ================= RESET COOLDOWN =================
-  if(command==="resetcooldown"){
+return message.reply({embeds:[embed]});
+}
 
-    if(!isStaff && !isOwner) return message.reply("Staff only.");
+// ================= RESET COOLDOWN =================
 
-    const id = args[0];
+if(command==="resetcooldown" && isStaff){
 
-    if(cooldown.has(id)){
-      cooldown.delete(id);
-      return message.reply("Cooldown reset.");
-    }
+const id=args[0];
 
-    return message.reply("User not on cooldown.");
-  }
+if(cooldown.has(id)){
+cooldown.delete(id);
+return message.reply("Cooldown reset.");
+}
 
-  // ================= STOCK =================
-  if(command==="stock"){
+return message.reply("User not on cooldown.");
+}
 
-    const embed = new EmbedBuilder()
-      .setTitle("⚡ INCREDIBLE GENERATOR STOCK")
-      .setDescription(`
+// ================= STOCK =================
+
+if(command==="stock"){
+
+const embed=new EmbedBuilder()
+.setTitle("⚡ INCREDIBLE GENERATOR STOCK")
+.setColor("#8e44ff")
+.setImage(BANNER_URL)
+.setFooter({text:"Incredible Services",iconURL:FOOTER_GIF})
+.setDescription(`
+
 STEAM: ♾️
 CRUNCHYROLL: ♾️
 MINECRAFT: ♾️
 
 Use .gen steam | minecraft | crunchyroll
-`)
-      .setColor("#8e44ff")
-      .setImage(BANNER_URL)
-      .setFooter({text:"Incredible Services",iconURL:FOOTER_GIF});
 
-    return message.reply({embeds:[embed]});
-  }
+`);
 
-  // ================= .67 GIF =================
-  if(command==="67"){
+return message.reply({embeds:[embed]});
+}
 
-    if(!isStaff && !isOwner) return message.reply("❌ Staff or owners only.");
+// ================= 67 =================
 
-    const embed = new EmbedBuilder()
-      .setTitle("🎉 67")
-      .setColor("#ff66cc")
-      .setImage("attachment://67.gif")
-      .setFooter({text:"Incredible Services",iconURL:FOOTER_GIF});
+if(command==="67"){
 
-    return message.reply({
-      embeds:[embed],
-      files:["./67.gif"]
-    });
-  }
+if(!isStaff && !isOwner)
+return message.reply("Staff only.");
 
-  // ================= GENERATE =================
-  if(command==="gen"){
+const embed=new EmbedBuilder()
+.setTitle("🎉 67")
+.setColor("#ff66cc")
+.setImage("attachment://67.gif")
+.setFooter({text:"Incredible Services",iconURL:FOOTER_GIF});
 
-    if(!systemEnabled) return message.reply("System disabled.");
+return message.reply({
+embeds:[embed],
+files:["./67.gif"]
+});
+}
 
-    const type = args[0]?.toLowerCase();
+// ================= GENERATE =================
 
-    if(!["steam","minecraft","crunchyroll"].includes(type))
-      return message.reply("Usage: .gen steam | minecraft | crunchyroll");
+if(command==="gen"){
 
-    const now = Date.now();
-    const user = message.author.id;
+if(!systemEnabled) return message.reply("Generator disabled.");
 
-    if(cooldown.has(user)){
-      const expire = cooldown.get(user)+COOLDOWN_TIME;
+const type=args[0]?.toLowerCase();
 
-      if(now<expire){
+if(!["steam","minecraft","crunchyroll"].includes(type))
+return message.reply("Usage: .gen steam | minecraft | crunchyroll");
 
-        const left = expire-now;
-        const h = Math.floor(left/3600000);
-        const m = Math.floor((left%3600000)/60000);
+const user=message.author.id;
+const now=Date.now();
 
-        return message.reply(`Wait ${h}h ${m}m`);
-      }
-    }
+if(cooldown.has(user)){
 
-    cooldown.set(user,now);
+const expire=cooldown.get(user)+COOLDOWN_TIME;
 
-    const codeLength = type==="steam"?3:type==="minecraft"?5:6;
-    const code = generateCode(codeLength);
+if(now<expire){
 
-    generatedCodes.set(code,type);
-    totalGenerated++;
+const left=expire-now;
+const h=Math.floor(left/3600000);
+const m=Math.floor((left%3600000)/60000);
 
-    const loading = new EmbedBuilder()
-      .setTitle("⚡ Incredible Generator")
-      .setDescription("```Generating...\n[■■□□□□□□] 25%```")
-      .setColor("#8e44ff")
-      .setImage(BANNER_URL);
+return message.reply(`⏳ Wait ${h}h ${m}m`);
+}
 
-    const msg = await message.reply({embeds:[loading]});
+}
 
-    setTimeout(()=>{
-      loading.setDescription("```Generating...\n[■■■□□□□□] 40%```");
-      msg.edit({embeds:[loading]});
-    },800);
+cooldown.set(user,now);
 
-    setTimeout(()=>{
-      loading.setDescription("```Generating...\n[■■■■■■□□] 75%```");
-      msg.edit({embeds:[loading]});
-    },1600);
+const codeLength=type==="steam"?3:type==="minecraft"?5:6;
+const code=generateCode(codeLength);
 
-    setTimeout(()=>{
-      loading.setDescription("```Generating...\n[■■■■■■■■] 100%```");
-      msg.edit({embeds:[loading]});
-    },2300);
+generatedCodes.set(code,type);
+totalGenerated++;
 
-    setTimeout(async()=>{
+const loading=new EmbedBuilder()
+.setTitle("⚡ Incredible Generator")
+.setColor("#8e44ff")
+.setImage(BANNER_URL)
+.setDescription("```Generating...\n[■■□□□□□□] 25%```");
 
-      const embed = new EmbedBuilder()
-        .setTitle("SUCCESS")
-        .setDescription(`Code sent to your DM`)
-        .setColor("#57F287");
+const msg=await message.reply({embeds:[loading]});
 
-      await msg.edit({embeds:[embed]});
+setTimeout(()=>{
+loading.setDescription("```Generating...\n[■■■■□□□□] 50%```");
+msg.edit({embeds:[loading]});
+},1000);
 
-      try{
+setTimeout(()=>{
+loading.setDescription("```Generating...\n[■■■■■■□□] 75%```");
+msg.edit({embeds:[loading]});
+},2000);
 
-        const dm = new EmbedBuilder()
-          .setTitle("Your Generator Code")
-          .setDescription(`
-1. Open redeem ticket
-2. Type .redeem ${code}
+setTimeout(async()=>{
 
-Code: **${code}**
-`)
-          .setColor("#8e44ff");
+const embed=new EmbedBuilder()
+.setTitle("✅ Success")
+.setColor("#57F287")
+.setImage(BANNER_URL)
+.setFooter({text:"Incredible Services",iconURL:FOOTER_GIF})
+.setDescription(`${message.author} I've sent the **${type} account details** to your DMs.`);
 
-        await message.author.send({embeds:[dm]});
+await msg.edit({embeds:[embed]});
 
-      }catch{
-        message.reply("Cannot DM you.");
-      }
+try{
 
-    },3000);
-  }
+const dm=new EmbedBuilder()
+.setTitle("🎁 Incredible Generator")
+.setColor("#8e44ff")
+.setImage(BANNER_URL)
+.setFooter({text:"Incredible Services",iconURL:FOOTER_GIF})
+.setDescription(`
 
-  // ================= REDEEM =================
-  if(command==="redeem"){
+**Follow steps**
 
-    if(!systemEnabled) return message.reply("System disabled.");
+1️⃣ Create redeem ticket
+2️⃣ Type \`.redeem ${code}\`
 
-    const code = args[0];
+**Your Code:** **${code}**
 
-    if(!generatedCodes.has(code))
-      return message.reply("Invalid code.");
+`);
 
-    const type = generatedCodes.get(code);
+await message.author.send({embeds:[dm]});
 
-    if(stock[type].length===0)
-      return message.reply("Out of stock.");
+}catch{
+message.reply("❌ I couldn't DM you.");
+}
 
-    const index = Math.floor(Math.random()*stock[type].length);
-    const account = stock[type][index];
+},3000);
 
-    generatedCodes.delete(code);
-    totalRedeemed++;
+}
 
-    const embed = new EmbedBuilder()
-      .setTitle("Account Redeemed")
-      .setDescription(`${account}`)
-      .setColor("Green");
+// ================= REDEEM =================
 
-    message.channel.send({embeds:[embed]});
-  }
+if(command==="redeem"){
+
+if(!systemEnabled) return message.reply("System disabled.");
+
+const code=args[0];
+
+if(!generatedCodes.has(code))
+return message.reply("Invalid code.");
+
+const type=generatedCodes.get(code);
+
+if(stock[type].length===0)
+return message.reply("Out of stock.");
+
+const index=Math.floor(Math.random()*stock[type].length);
+const account=stock[type][index];
+
+generatedCodes.delete(code);
+totalRedeemed++;
+
+const embed=new EmbedBuilder()
+.setTitle("🎉 Account Redeemed")
+.setColor("Green")
+.setDescription(`${account}`);
+
+message.channel.send({embeds:[embed]});
+}
 
 });
+
+// ================= LOGIN =================
 
 client.login(process.env.TOKEN);
